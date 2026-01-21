@@ -1,3 +1,9 @@
+body {
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none
+}
 tr
 	{mso-height-source:auto;
 	mso-ruby-visibility:none;}
@@ -25,7 +31,7 @@ ruby
 	mso-font-charset:0;
 	border:none;
 	mso-protection:locked visible;
-	mso-style-name:ǥ��;
+	mso-style-name:Ç¥ÁØ;
 	mso-style-id:0;}
 .font5
 	{color:black;
@@ -816,3 +822,4 @@ td
 	border-right:none;
 	border-bottom:.5pt solid black;
 	border-left:1.0pt solid black;}
+
