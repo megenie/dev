@@ -540,6 +540,21 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 
 <script>
 // ============================================================
+//  1. STATE (앱 상태 저장소 - 가장 먼저 선언되어야 에러가 안 납니다!)
+// ============================================================
+const state = {
+  location: null,
+  selectedTime: null,
+  tripDate: null,
+  eligibleDistricts: [],
+  currentResult: null,
+  records: JSON.parse(localStorage.getItem('tr-records') || '[]'),
+  selectedEmoji: '🏔',
+  pendingLoc: null,
+  pendingAddr: null,
+};
+
+// ============================================================
 //  카카오 지도 — 출발지 설정 모달 (드래그 핀 + 검색 통합본)
 // ============================================================
 let kmap = null;
@@ -774,17 +789,17 @@ const FOOD_CATS = [
 // ============================================================
 //  STATE
 // ============================================================
-const state = {
-  location: null,
-  selectedTime: null,
-  tripDate: null,
-  eligibleDistricts: [],   // OSRM 계산 후 조건 충족 지역 목록
-  currentResult: null,
-  records: JSON.parse(localStorage.getItem('tr-records') || '[]'),
-  selectedEmoji: '🏔',
-  pendingLoc: null,
-  pendingAddr: null,
-};
+// const state = {
+//   location: null,
+//   selectedTime: null,
+//   tripDate: null,
+//   eligibleDistricts: [],   // OSRM 계산 후 조건 충족 지역 목록
+//   currentResult: null,
+//   records: JSON.parse(localStorage.getItem('tr-records') || '[]'),
+//   selectedEmoji: '🏔',
+//   pendingLoc: null,
+//   pendingAddr: null,
+// };
 
 // ============================================================
 //  지도 탭 — Leaflet + OpenStreetMap (완전 무료)
