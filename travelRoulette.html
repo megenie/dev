@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>여행 룰렛 🎯</title>
+<!-- Leaflet CSS (여행 기록 지도 탭용) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- 카카오 지도 JavaScript API -->
+<script type="text/javascript" src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=1930d566fd80c7e8a7869c1e9bf73dbf&libraries=services"></script>
+<script>
+  const API_KEYS = {
+    KAKAO_JS_KEY:   '1930d566fd80c7e8a7869c1e9bf73dbf'
+  };
+</script>
+
+<style>
+:root{
+  --primary:#2563EB;--primary-light:#EFF6FF;--primary-dark:#1D4ED8;
+  --accent:#F97316;--accent-light:#FFF7ED;
+  --success:#16A34A;--success-light:#F0FDF4;
+  --danger:#DC2626;
+  --bg:#F8FAFC;--bg-card:#FFFFFF;
+  --text:#0F172A;--text-muted:#64748B;--border:#E2E8F0;
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:24px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;}
+
+/* HEADER */
+.app-header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;}
+.app-logo{font-size:20px;font-weight:700;color:var(--primary);letter-spacing:-.5px;}
+.app-logo span{color:var(--accent);}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);display:flex;z-index:100;}
+.nav-btn{flex:1;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);transition:color .2s;}
+.nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;}
+.nav-btn.active{color:var(--primary);font-weight:600;}
+
+/* PAGES */
+.page{display:none;padding:20px;max-width:480px;margin:0 auto;}
+.page.active{display:block;}
+/* 지도 탭은 padding 없음 */
+#page-map{padding:0;max-width:100%;}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:16px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;}
+
+/* LOCATION BOX */
+.location-display{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--primary-light);border:1px solid #BFDBFE;border-radius:var(--r-md);margin-bottom:10px;cursor:pointer;transition:background .15s;}
+.location-display:active{background:#BFDBFE;}
+.location-text{font-size:14px;font-weight:600;color:var(--primary-dark);flex:1;}
+.location-sub{font-size:12px;color:#3B82F6;margin-top:2px;}
+.loc-hint{font-size:11px;color:#93C5FD;margin-top:1px;}
+.btn-gps-main{width:100%;padding:11px;background:var(--bg-card);color:var(--primary);border:1.5px solid #BFDBFE;border-radius:var(--r-md);font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;}
+
+/* TRIP DATE */
+.trip-date-display{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--success-light);border:1px solid #BBF7D0;border-radius:var(--r-md);cursor:pointer;}
+.trip-date-text{font-size:14px;font-weight:600;color:#166534;flex:1;}
+.trip-date-sub{font-size:12px;color:#22C55E;margin-top:2px;}
+
+/* TIME BUTTONS */
+.time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.time-btn{padding:10px 4px;border:1.5px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);font-size:12px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all .15s;text-align:center;line-height:1.3;}
+.time-btn:active{transform:scale(.95);}
+.time-btn.selected{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark);}
+
+/* SPIN BTN */
+.btn-spin{width:100%;padding:18px;background:linear-gradient(135deg,#F97316 0%,#F59E0B 100%);color:white;border:none;border-radius:var(--r-xl);font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 4px 14px rgba(249,115,22,.35);transition:transform .1s;margin-top:4px;}
+.btn-spin:active{transform:scale(.97);}
+.btn-spin:disabled{background:#CBD5E1;box-shadow:none;cursor:not-allowed;}
+
+/* CALCULATING BADGE */
+.calc-badge{display:none;align-items:center;gap:8px;padding:10px 14px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:var(--r-md);margin-bottom:12px;font-size:13px;color:var(--accent);font-weight:600;}
+.calc-badge.show{display:flex;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.calc-spinner{width:16px;height:16px;border:2px solid #FED7AA;border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;}
+
+/* SPINNING OVERLAY */
+.spinning-display{display:none;position:fixed;inset:0;background:rgba(15,23,42,.93);z-index:700;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
+.spinning-display.show{display:flex;}
+.spin-label{font-size:14px;color:#94A3B8;}
+.spin-value{font-size:36px;font-weight:800;color:white;min-height:50px;text-align:center;}
+.spin-anim{animation:flash .1s linear infinite;}
+@keyframes flash{0%,100%{opacity:1;}50%{opacity:.4;}}
+.spin-arrow{font-size:28px;color:#F97316;animation:bounce .45s ease infinite alternate;}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(10px);}}
+
+/* RESULT SHEET */
+.result-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:600;align-items:flex-end;justify-content:center;}
+.result-overlay.show{display:flex;}
+.result-sheet{background:var(--bg-card);border-radius:24px 24px 0 0;padding:24px 24px 44px;width:100%;max-width:480px;animation:slideUp .35s cubic-bezier(.34,1.56,.64,1);max-height:88vh;overflow-y:auto;}
+@keyframes slideUp{from{transform:translateY(100%);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.result-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
+.result-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--accent-light);border:1px solid #FED7AA;border-radius:20px;font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px;}
+.result-destination{font-size:32px;font-weight:800;letter-spacing:-1px;color:var(--text);margin-bottom:4px;}
+.result-region{font-size:15px;color:var(--text-muted);margin-bottom:18px;}
+.result-actual-time{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--primary-light);border-radius:12px;font-size:12px;color:var(--primary-dark);font-weight:600;margin-bottom:18px;}
+.section-label{font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:.5px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.map-btns{display:flex;gap:8px;margin:12px 0 6px;}
+.result-map-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border:1.5px solid var(--border);border-radius:var(--r-md);font-size:13px;font-weight:700;cursor:pointer;flex:1;}
+.result-map-btn.kakao{color:#3A1D96;border-color:#C4B5FD;background:#F5F3FF;}
+.result-map-btn.naver{color:#166534;border-color:#BBF7D0;background:#F0FDF4;}
+.result-actions{display:flex;gap:10px;margin-top:14px;}
+.btn-save{flex:1;padding:14px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:15px;font-weight:700;cursor:pointer;}
+.btn-close-result{padding:14px 18px;border:1.5px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);font-size:14px;font-weight:600;cursor:pointer;}
+
+/* FOOD */
+.food-card{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.food-card:last-child{border-bottom:none;}
+.food-icon{width:36px;height:36px;border-radius:var(--r-sm);background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.food-name{font-size:13px;font-weight:600;}
+.food-type{font-size:11px;color:var(--text-muted);}
+.food-links{margin-left:auto;display:flex;gap:6px;}
+.food-link{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;}
+.food-link.kakao{background:#FEE500;color:#3B1D1D;}
+.food-link.naver{background:#03C75A;color:white;}
+
+/* RECORDS */
+.record-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--r-md);padding:16px;margin-bottom:10px;display:flex;gap:12px;}
+.record-thumb{width:56px;height:56px;border-radius:var(--r-sm);background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;}
+.record-info{flex:1;min-width:0;}
+.record-dest{font-size:15px;font-weight:700;margin-bottom:2px;}
+.record-meta{font-size:12px;color:var(--text-muted);margin-bottom:3px;}
+.record-memo{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted);}
+.empty-state p{font-size:14px;margin-top:12px;line-height:1.7;}
+
+/* ─── 지도 탭 (Leaflet OSM) ─── */
+#travel-map-wrap{width:100%;display:flex;flex-direction:column;height:calc(100vh - 130px);}
+#travel-map{flex:1;min-height:0;z-index:1;}
+/* 지도 위 떠있는 통계 바 */
+.map-stats-bar{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  background:rgba(255,255,255,.95);backdrop-filter:blur(6px);
+  border:1px solid var(--border);border-radius:20px;
+  padding:6px 14px;display:flex;align-items:center;gap:12px;
+  font-size:12px;font-weight:600;color:var(--text);
+  box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:10;white-space:nowrap;
+  pointer-events:none;
+}
+.map-stats-dot{width:8px;height:8px;border-radius:50%;background:#F97316;flex-shrink:0;}
+/* 하단 기록 패널 */
+.record-panel{
+  background:var(--bg-card);border-top:1px solid var(--border);
+  flex-shrink:0;overflow-y:auto;max-height:260px;
+}
+.record-panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px 8px;position:sticky;top:0;background:var(--bg-card);
+  border-bottom:1px solid var(--border);z-index:2;
+}
+.record-panel-title{font-size:13px;font-weight:700;color:var(--text-muted);letter-spacing:.6px;}
+.record-panel-count{font-size:12px;color:var(--primary);font-weight:700;}
+.record-list-below{padding:0;}
+/* 팝업 */
+.leaflet-popup-content-wrapper{border-radius:12px!important;box-shadow:0 4px 16px rgba(0,0,0,.15)!important;border:1px solid var(--border)!important;padding:0!important;}
+.leaflet-popup-content{margin:0!important;}
+.leaflet-popup-tip-container{display:none;}
+
+/* ─── MAP MODAL (출발지 설정) ─── */
+.map-modal-overlay{display:none;position:fixed;inset:0;z-index:800;flex-direction:column;background:var(--bg-card);}
+.map-modal-overlay.show{display:flex;flex-direction:column;}
+.map-modal-header{background:var(--bg-card);padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.map-modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);padding:4px 8px;line-height:1;}
+.map-modal-title{font-size:16px;font-weight:700;flex:1;}
+.addr-search-row{display:flex;gap:8px;padding:10px 14px;background:var(--bg-card);border-bottom:1px solid var(--border);flex-shrink:0;}
+.addr-search-input{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-md);font-size:14px;font-family:inherit;color:var(--text);}
+.addr-search-input:focus{outline:none;border-color:var(--primary);}
+.addr-search-btn{padding:9px 14px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+#kakao-map-wrap{flex:1;min-height:0;height:100%;position:relative;overflow:hidden;}
+#kakao-map{width:100%;height:100%;}
+#center-pin{position:absolute;top:50%;left:50%;transform:translate(-50%,-100%);font-size:36px;line-height:1;pointer-events:none;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,.4));transition:transform .12s;}
+.map-modal-footer{background:var(--bg-card);padding:12px 16px;border-top:1px solid var(--border);flex-shrink:0;}
+.map-selected-addr{font-size:13px;margin-bottom:8px;min-height:36px;line-height:1.5;color:var(--text);}
+.map-modal-actions{display:flex;gap:8px;}
+.btn-modal-gps{padding:12px 16px;background:var(--bg-card);color:var(--primary);border:1.5px solid #BFDBFE;border-radius:var(--r-md);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn-confirm-loc{flex:1;padding:12px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:15px;font-weight:700;cursor:pointer;}
+/* 카카오 주소검색 결과 드롭다운 */
+.addr-results{position:absolute;left:0;right:0;background:white;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r-md) var(--r-md);z-index:20;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12);}
+.addr-result-item{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);}
+.addr-result-item:last-child{border-bottom:none;}
+.addr-result-item:hover{background:var(--primary-light);}
+.addr-result-name{font-weight:600;color:var(--text);}
+.addr-result-addr{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.addr-search-wrap{position:relative;}
+
+/* ─── CALENDAR MODAL ─── */
+.cal-modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:800;align-items:flex-end;justify-content:center;}
+.cal-modal-overlay.show{display:flex;}
+.cal-sheet{background:var(--bg-card);border-radius:24px 24px 0 0;padding:24px 20px 44px;width:100%;max-width:480px;animation:slideUp .3s cubic-bezier(.34,1.56,.64,1);}
+.cal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cal-month-label{font-size:17px;font-weight:700;}
+.cal-nav{width:36px;height:36px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg-card);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.cal-legend{display:flex;gap:12px;margin-bottom:14px;}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);}
+.cal-legend-dot{width:10px;height:10px;border-radius:50%;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:16px;}
+.cal-dow{text-align:center;font-size:11px;font-weight:700;color:var(--text-muted);padding:4px 0;}
+.cal-dow:first-child{color:#DC2626;}
+.cal-dow:last-child{color:#2563EB;}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:14px;cursor:pointer;border:none;background:none;color:var(--text);}
+.cal-day:hover:not(:disabled){background:var(--primary-light);}
+.cal-day.today{border:1.5px solid var(--primary);color:var(--primary);font-weight:600;}
+.cal-day.suggested{background:var(--success-light);color:var(--success);font-weight:700;}
+.cal-day.selected{background:var(--primary)!important;color:white!important;font-weight:700;}
+.cal-day:disabled{color:#D1D5DB;cursor:default;}
+.cal-day.other{color:#D1D5DB;}
+.cal-day.sun:not(:disabled):not(.selected){color:#DC2626;}
+.cal-day.sat:not(:disabled):not(.selected){color:#2563EB;}
+.cal-confirm-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:16px;font-weight:700;cursor:pointer;}
+.cal-confirm-btn:disabled{background:#CBD5E1;cursor:not-allowed;}
+
+/* MEMO MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:800;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--bg-card);border-radius:var(--r-xl);padding:24px;width:100%;max-width:420px;}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:16px;}
+.modal-textarea{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:var(--r-md);font-size:14px;font-family:inherit;min-height:80px;resize:none;color:var(--text);background:var(--bg);margin-bottom:12px;}
+.emoji-picker{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.emoji-opt{width:40px;height:40px;border:1.5px solid var(--border);border-radius:var(--r-sm);background:var(--bg);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.emoji-opt.selected{border-color:var(--primary);background:var(--primary-light);}
+.modal-actions{display:flex;gap:10px;}
+.btn-modal-ok{flex:1;padding:13px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:15px;font-weight:700;cursor:pointer;}
+.btn-modal-cancel{padding:13px 18px;border:1.5px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);font-size:14px;cursor:pointer;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ─── 여행지 핀 스타일 ─── */
+.travel-pin{position:relative;display:inline-flex;flex-direction:column;align-items:center;cursor:pointer;}
+.travel-pin-bubble{
+  background:#F97316;color:white;
+  padding:5px 10px;border-radius:16px;
+  font-size:12px;font-weight:700;
+  border:2.5px solid white;
+  box-shadow:0 3px 10px rgba(249,115,22,.45);
+  white-space:nowrap;display:flex;align-items:center;gap:4px;
+  transform:translateX(-50%);
+  transition:transform .15s,box-shadow .15s;
+}
+.travel-pin:hover .travel-pin-bubble{
+  transform:translateX(-50%) scale(1.08);
+  box-shadow:0 5px 16px rgba(249,115,22,.55);
+}
+.travel-pin-tail{
+  width:0;height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+  border-top:8px solid #F97316;
+  margin-top:-1px;
+  transform:translateX(-50%);
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.2));
+}
+/* 팝업 */
+.tp-popup{padding:14px 16px;min-width:180px;max-width:220px;font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;}
+.tp-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.tp-emoji{font-size:26px;line-height:1;flex-shrink:0;}
+.tp-dest{font-size:15px;font-weight:700;color:#0F172A;}
+.tp-region{font-size:12px;color:#64748B;margin-top:1px;}
+.tp-divider{height:1px;background:#E2E8F0;margin-bottom:8px;}
+.tp-meta{font-size:12px;color:#64748B;margin-bottom:4px;}
+.tp-memo{font-size:12px;color:#0F172A;font-style:italic;margin-top:6px;padding:6px 8px;background:#F8FAFC;border-radius:6px;border-left:3px solid #F97316;}
+/* Leaflet 팝업 래퍼 커스텀 */
+.travel-popup .leaflet-popup-content-wrapper{
+  border-radius:14px!important;
+  padding:0!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.18)!important;
+  border:1px solid #E2E8F0!important;
+}
+.travel-popup .leaflet-popup-content{margin:0!important;line-height:1.5!important;}
+.travel-popup .leaflet-popup-close-button{
+  top:8px!important;right:10px!important;
+  font-size:18px!important;color:#64748B!important;
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-logo">여행<span>룰렛</span> 🎯</div>
+  <div style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="openCalModal()" id="header-date"></div>
+</header>
+
+<!-- ======= PAGE: 뽑기 ======= -->
+<div class="page active" id="page-spin">
+
+  <!-- 여행 날짜 -->
+  <div class="card">
+    <div class="card-title">📅 여행 날짜</div>
+    <div class="trip-date-display" onclick="openCalModal()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      <div>
+        <div class="trip-date-text" id="trip-date-text">날짜를 선택하세요</div>
+        <div class="trip-date-sub" id="trip-date-sub">탭하여 캘린더 열기</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  </div>
+
+  <!-- 출발지 -->
+  <div class="card">
+    <div class="card-title">📍 출발지 설정</div>
+    <div class="location-display" onclick="openMapModal()" id="loc-box">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2" style="flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <div style="flex:1">
+        <div class="location-text" id="location-name">GPS 위치 가져오는 중...</div>
+        <div class="loc-hint" id="location-coord">탭하여 지도에서 위치 조정 · 주소 검색 가능</div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#93C5FD" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+    <button class="btn-gps-main" onclick="requestGPS()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      현재 GPS 위치로 재설정
+    </button>
+  </div>
+
+  <!-- 이동시간 선택 -->
+  <div class="card">
+    <div class="card-title">⏱ 출발지 기준 최소 이동 시간</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;line-height:1.6;">
+      선택한 시간 <strong>이내</strong> 거리의 지역을 랜덤 선정합니다.<br>
+      예) <strong>2시간</strong> 선택 → 1시간 30분 ~ 2시간 거리 지역<br>
+      출발지 GPS 기반 실제 도로 이동시간으로 필터링합니다.
+    </div>
+    <div class="time-grid">
+      <button class="time-btn" onclick="selectTime(this,90)">1시간<br>30분</button>
+      <button class="time-btn" onclick="selectTime(this,120)">2시간</button>
+      <button class="time-btn" onclick="selectTime(this,150)">2시간<br>30분</button>
+      <button class="time-btn" onclick="selectTime(this,180)">3시간</button>
+      <button class="time-btn" onclick="selectTime(this,210)">3시간<br>30분</button>
+      <button class="time-btn" onclick="selectTime(this,240)">4시간</button>
+      <button class="time-btn" onclick="selectTime(this,270)">4시간<br>30분</button>
+      <button class="time-btn" onclick="selectTime(this,300)">5시간</button>
+    </div>
+  </div>
+
+  <div class="calc-badge" id="calc-badge">
+    <div class="calc-spinner"></div>
+    <span id="calc-text">출발지에서 각 지역까지 이동시간 계산 중...</span>
+  </div>
+
+  <button class="btn-spin" id="spin-btn" onclick="startSpin()" disabled>🎲 여행지 뽑기!</button>
+</div>
+
+<!-- ======= PAGE: 지도 ======= -->
+<div class="page" id="page-map" style="padding:0;max-width:100%;position:relative;">
+  <div id="travel-map-wrap">
+    <!-- 지도 위 통계 바 -->
+    <div class="map-stats-bar" id="map-stats-bar" style="display:none;">
+      <div class="map-stats-dot"></div>
+      <span id="map-stats-text">여행지 0곳</span>
+    </div>
+    <!-- Leaflet 지도 -->
+    <div id="travel-map"></div>
+    <!-- 하단 기록 패널 -->
+    <div class="record-panel">
+      <div class="record-panel-header">
+        <div class="record-panel-title">📋 다녀온 여행지</div>
+        <div class="record-panel-count" id="record-panel-count"></div>
+      </div>
+      <div class="record-list-below" style="padding:8px 12px 12px;">
+        <div id="records-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======= PAGE: 설정 ======= -->
+<div class="page" id="page-settings">
+  <div class="card-title" style="margin-bottom:16px;">⚙️ 설정 및 API 안내</div>
+
+  <div class="card">
+    <div class="card-title">API 키 입력 위치</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.9;">
+      <p>HTML 파일 상단 <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:12px;">API_KEYS</code> 객체에 입력하세요.</p>
+      <br>
+      <p><strong style="color:var(--text);">카카오 REST API</strong> — 주소 검색·역지오코딩용</p>
+      <p style="color:#F59E0B;font-size:12px;">developers.kakao.com</p>
+      <p style="font-size:12px;margin-top:2px;">→ 내 애플리케이션 → REST API 키<br>→ 없으면 Nominatim(무료)으로 자동 대체</p>
+      <br>
+      <p><strong style="color:var(--text);">이동시간 계산</strong> — 키 불필요</p>
+      <p style="font-size:12px;color:var(--text-muted);">OSRM 오픈소스 API (무료, 실제 도로 기반)</p>
+      <br>
+      <p><strong style="color:var(--text);">지도</strong> — 키 불필요</p>
+      <p style="font-size:12px;color:var(--text-muted);">OpenStreetMap + Leaflet (완전 무료·상업용 가능)</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">앱 정보</div>
+    <div style="font-size:13px;color:var(--text-muted);line-height:1.9;">
+      <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p>
+      <p>📍 GPS + 지도 드래그 + 주소 검색 출발지</p>
+      <p>🚗 OSRM 실제 도로 이동시간 기반 필터링</p>
+      <p>🗺 OpenStreetMap + Leaflet (무료 지도) PIN 표시</p>
+      <p>🍜 카카오·네이버 지도 맛집 연동</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <button onclick="clearAllRecords()" style="width:100%;padding:12px;border:1.5px solid #FCA5A5;border-radius:var(--r-md);background:#FFF1F2;color:#DC2626;font-weight:700;font-size:14px;cursor:pointer;">🗑 모든 여행 기록 삭제</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" onclick="goPage('spin',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>뽑기
+  </button>
+  <button class="nav-btn" onclick="goPage('map',this)">
+    <svg viewBox="0 0 24 24"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>지도
+  </button>
+  <button class="nav-btn" onclick="goPage('settings',this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>설정
+  </button>
+</nav>
+
+<!-- ======= SPINNING OVERLAY ======= -->
+<div class="spinning-display" id="spin-overlay">
+  <div style="text-align:center;">
+    <div class="spin-label">1단계 — 행정구역</div>
+    <div class="spin-value spin-anim" id="spin-region-val">-</div>
+  </div>
+  <div class="spin-arrow" id="spin-arrow1">▼</div>
+  <div id="spin-district-block" style="text-align:center;opacity:0;transition:opacity .3s;">
+    <div class="spin-label">2단계 — 시 · 군 · 구</div>
+    <div class="spin-value spin-anim" id="spin-district-val">-</div>
+  </div>
+</div>
+
+<!-- ======= RESULT SHEET ======= -->
+<div class="result-overlay" id="result-overlay">
+  <div class="result-sheet">
+    <div class="result-handle"></div>
+    <div class="result-badge">🎯 <span id="res-time-label"></span></div>
+    <div class="result-destination" id="res-dest"></div>
+    <div class="result-region" id="res-region"></div>
+    <div class="result-actual-time" id="res-actual-time" style="display:none">
+      🚗 <span id="res-actual-time-text"></span>
+    </div>
+    <div class="section-label">🍜 맛집 검색</div>
+    <div id="food-cards-area"></div>
+    <div class="map-btns">
+      <button class="result-map-btn kakao" onclick="openKakaoMap()" style="background-color: #FAE100; border:0px; color:#fefefe">카카오맵</button>
+      <button class="result-map-btn naver" onclick="openNaverMap()" style="background-color: #2Db400; border:0px; color:#fefefe">네이버지도</button>
+    </div>
+    <div class="result-actions">
+      <button class="btn-save" onclick="openMemoModal()">📝 기록으로 저장</button>
+      <button class="btn-close-result" onclick="closeResult()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= MAP MODAL (출발지 설정 — 카카오 지도) ======= -->
+<div class="map-modal-overlay" id="map-modal">
+  <div class="map-modal-header">
+    <button class="map-modal-close" onclick="closeMapModal()">✕</button>
+    <div class="map-modal-title">📍 출발지 설정</div>
+  </div>
+  <!-- 주소 검색 -->
+  <div class="addr-search-row">
+    <div class="addr-search-wrap" style="flex:1;position:relative;">
+      <input type="text" class="addr-search-input" id="addr-input"
+        placeholder="주소·장소명 입력 후 검색 (예: 강남역)"
+        style="width:100%;"
+        onkeydown="if(event.key==='Enter'){searchAddress();this.blur();}">
+      <div class="addr-results" id="addr-results" style="display:none;"></div>
+    </div>
+    <button class="addr-search-btn" onclick="searchAddress()">검색</button>
+  </div>
+  <!-- 카카오 지도 + 중앙 핀 -->
+  <div id="kakao-map-wrap">
+    <div id="kakao-map"></div>
+    <div id="center-pin">📍</div>
+  </div>
+  <div class="map-modal-footer">
+    <div class="map-selected-addr" id="map-addr-label">지도를 드래그하거나 주소를 검색하세요</div>
+    <div class="map-modal-actions">
+      <button class="btn-modal-gps" onclick="gpsInModal()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>GPS
+      </button>
+      <button class="btn-confirm-loc" onclick="confirmLocation()">이 위치로 출발 ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======= CALENDAR MODAL ======= -->
+<div class="cal-modal-overlay" id="cal-modal">
+  <div class="cal-sheet">
+    <div class="cal-handle"></div>
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calMove(-1)">‹</button>
+      <div class="cal-month-label" id="cal-month-label"></div>
+      <button class="cal-nav" onclick="calMove(1)">›</button>
+    </div>
+    <div class="cal-legend">
+      <div class="cal-legend-item">
+        <div class="cal-legend-dot" style="background:var(--success-light);border:1.5px solid var(--success);"></div>
+        첫째 주 토요일 (추천)
+      </div>
+      <div class="cal-legend-item">
+        <div class="cal-legend-dot" style="background:var(--primary);"></div>
+        선택된 날짜
+      </div>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <button class="cal-confirm-btn" id="cal-confirm-btn" onclick="confirmCalDate()" disabled>날짜 선택 후 확인</button>
+  </div>
+</div>
+
+<!-- ======= MEMO MODAL ======= -->
+<div class="modal-overlay" id="memo-modal">
+  <div class="modal-box">
+    <div class="modal-title">📝 여행 기록 저장</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" id="memo-dest-label"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:6px;">아이콘 선택</div>
+    <div class="emoji-picker">
+      <div class="emoji-opt selected" onclick="pickEmoji(this)">🏔</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🏖</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🌊</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🌲</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🏯</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🍜</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🎭</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🎣</div>
+    </div>
+    <textarea class="modal-textarea" id="memo-text" placeholder="여행 메모 (방문날짜, 느낌, 맛집 등)"></textarea>
+    <div class="modal-actions">
+      <button class="btn-modal-ok" onclick="saveRecord()">저장</button>
+      <button class="btn-modal-cancel" onclick="closeMemoModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  지역 데이터 — 각 지역 대표 좌표 포함 (OSRM 라우팅용)
+// ============================================================
+const REGIONS = {
+  "서울":     { lat:37.5665, lng:126.9780, districts:[
+    {name:"강남구",lat:37.5172,lng:127.0473},{name:"강동구",lat:37.5301,lng:127.1238},
+    {name:"강북구",lat:37.6396,lng:127.0257},{name:"강서구",lat:37.5509,lng:126.8495},
+    {name:"관악구",lat:37.4784,lng:126.9516},{name:"광진구",lat:37.5384,lng:127.0822},
+    {name:"구로구",lat:37.4954,lng:126.8877},{name:"노원구",lat:37.6543,lng:127.0568},
+    {name:"마포구",lat:37.5663,lng:126.9014},{name:"서초구",lat:37.4837,lng:127.0324},
+    {name:"성동구",lat:37.5634,lng:127.0369},{name:"송파구",lat:37.5145,lng:127.1059},
+    {name:"영등포구",lat:37.5263,lng:126.8963},{name:"종로구",lat:37.5729,lng:126.9793},
+    {name:"중구",lat:37.5640,lng:126.9975}
+  ]},
+  "경기도":   { lat:37.4138, lng:127.5183, districts:[
+    {name:"수원시",lat:37.2636,lng:127.0286},{name:"성남시",lat:37.4449,lng:127.1388},
+    {name:"고양시",lat:37.6584,lng:126.8320},{name:"용인시",lat:37.2411,lng:127.1776},
+    {name:"부천시",lat:37.5034,lng:126.7660},{name:"안산시",lat:37.3219,lng:126.8308},
+    {name:"평택시",lat:36.9921,lng:127.1127},{name:"파주시",lat:37.7601,lng:126.7800},
+    {name:"의정부시",lat:37.7381,lng:127.0337},{name:"양평군",lat:37.4914,lng:127.4877},
+    {name:"가평군",lat:37.8316,lng:127.5097},{name:"연천군",lat:38.0964,lng:127.0749}
+  ]},
+  "강원도":   { lat:37.8228, lng:128.1555, districts:[
+    {name:"춘천시",lat:37.8813,lng:127.7298},{name:"원주시",lat:37.3422,lng:127.9201},
+    {name:"강릉시",lat:37.7519,lng:128.8761},{name:"속초시",lat:38.2070,lng:128.5918},
+    {name:"동해시",lat:37.5247,lng:129.1141},{name:"태백시",lat:37.1641,lng:128.9858},
+    {name:"평창군",lat:37.3703,lng:128.3904},{name:"영월군",lat:37.1839,lng:128.4614},
+    {name:"정선군",lat:37.3800,lng:128.6600},{name:"인제군",lat:38.0700,lng:128.1700},
+    {name:"고성군",lat:38.3800,lng:128.4700},{name:"양양군",lat:38.0700,lng:128.6200}
+  ]},
+  "충청북도": { lat:36.8000, lng:127.7000, districts:[
+    {name:"청주시",lat:36.6424,lng:127.4890},{name:"충주시",lat:36.9910,lng:127.9259},
+    {name:"제천시",lat:37.1325,lng:128.1908},{name:"보은군",lat:36.4897,lng:127.7295},
+    {name:"옥천군",lat:36.3061,lng:127.5710},{name:"영동군",lat:36.1750,lng:127.7769},
+    {name:"진천군",lat:36.8554,lng:127.4347},{name:"괴산군",lat:36.8158,lng:127.7873},
+    {name:"음성군",lat:36.9397,lng:127.6888},{name:"단양군",lat:36.9847,lng:128.3655}
+  ]},
+  "충청남도": { lat:36.5184, lng:126.8000, districts:[
+    {name:"천안시",lat:36.8151,lng:127.1139},{name:"공주시",lat:36.4465,lng:127.1190},
+    {name:"보령시",lat:36.3333,lng:126.6127},{name:"아산시",lat:36.7898,lng:127.0020},
+    {name:"서산시",lat:36.7847,lng:126.4503},{name:"논산시",lat:36.1870,lng:127.0986},
+    {name:"당진시",lat:36.8896,lng:126.6458},{name:"태안군",lat:36.7456,lng:126.2980},
+    {name:"홍성군",lat:36.6010,lng:126.6606},{name:"예산군",lat:36.6800,lng:126.8467}
+  ]},
+  "경상북도": { lat:36.4919, lng:128.8889, districts:[
+    {name:"포항시",lat:36.0190,lng:129.3435},{name:"경주시",lat:35.8562,lng:129.2247},
+    {name:"김천시",lat:36.1398,lng:128.1135},{name:"안동시",lat:36.5684,lng:128.7294},
+    {name:"구미시",lat:36.1196,lng:128.3441},{name:"영주시",lat:36.8057,lng:128.6239},
+    {name:"상주시",lat:36.4110,lng:128.1590},{name:"문경시",lat:36.5863,lng:128.1864},
+    {name:"울진군",lat:36.9930,lng:129.4011},{name:"봉화군",lat:36.8930,lng:128.7320}
+  ]},
+  "경상남도": { lat:35.4606, lng:128.2132, districts:[
+    {name:"창원시",lat:35.2279,lng:128.6811},{name:"진주시",lat:35.1800,lng:128.1076},
+    {name:"통영시",lat:34.8544,lng:128.4331},{name:"사천시",lat:35.0036,lng:128.0648},
+    {name:"거제시",lat:34.8800,lng:128.6210},{name:"남해군",lat:34.8376,lng:127.8920},
+    {name:"하동군",lat:35.0674,lng:127.7513},{name:"함양군",lat:35.5203,lng:127.7253},
+    {name:"거창군",lat:35.6869,lng:127.9097},{name:"합천군",lat:35.5667,lng:128.1655}
+  ]},
+  "전라북도": { lat:35.7175, lng:127.1530, districts:[
+    {name:"전주시",lat:35.8242,lng:127.1480},{name:"군산시",lat:35.9679,lng:126.7368},
+    {name:"익산시",lat:35.9483,lng:126.9578},{name:"정읍시",lat:35.5698,lng:126.8558},
+    {name:"남원시",lat:35.4165,lng:127.3900},{name:"김제시",lat:35.8034,lng:126.8807},
+    {name:"완주군",lat:35.9048,lng:127.1611},{name:"무주군",lat:35.9063,lng:127.6607},
+    {name:"고창군",lat:35.4355,lng:126.7020},{name:"부안군",lat:35.7317,lng:126.7333}
+  ]},
+  "전라남도": { lat:34.8161, lng:126.4630, districts:[
+    {name:"목포시",lat:34.8118,lng:126.3922},{name:"여수시",lat:34.7604,lng:127.6622},
+    {name:"순천시",lat:34.9506,lng:127.4871},{name:"나주시",lat:35.0160,lng:126.7108},
+    {name:"광양시",lat:34.9407,lng:127.6956},{name:"담양군",lat:35.3214,lng:126.9877},
+    {name:"고흥군",lat:34.6112,lng:127.2774},{name:"해남군",lat:34.5737,lng:126.5993},
+    {name:"완도군",lat:34.3100,lng:126.7548},{name:"진도군",lat:34.4870,lng:126.2632}
+  ]}
+};
+
+const FOOD_CATS = [
+  {e:"🍖",n:"고기구이",t:"고기"},{e:"🐟",n:"해산물·회",t:"해산물"},
+  {e:"🍜",n:"국밥·탕",t:"탕류"},{e:"🌾",n:"향토음식",t:"향토"},
+  {e:"☕",n:"카페·디저트",t:"카페"},{e:"🍣",n:"초밥·일식",t:"일식"},
+  {e:"🍕",n:"피자·양식",t:"양식"},{e:"🥘",n:"백반·한식",t:"한식"}
+];
+
+// ============================================================
+//  STATE
+// ============================================================
+const state = {
+  location: null,
+  selectedTime: null,
+  tripDate: null,
+  eligibleDistricts: [],   // OSRM 계산 후 조건 충족 지역 목록
+  currentResult: null,
+  records: JSON.parse(localStorage.getItem('tr-records') || '[]'),
+  selectedEmoji: '🏔',
+  pendingLoc: null,
+  pendingAddr: null,
+};
+
+// ============================================================
+//  지도 탭 — Leaflet + OpenStreetMap (완전 무료)
+// ============================================================
+let travelMap = null;
+let travelPins = [];
+let openPopup = null;
+
+function initTravelMap() {
+  if (travelMap) {
+    refreshTravelPins();
+    travelMap.invalidateSize();
+    return;
+  }
+
+  travelMap = L.map('travel-map', {
+    center: [36.5, 127.8],
+    zoom: 7,
+    minZoom: 6,
+    maxZoom: 17,
+    zoomControl: true
+  });
+
+  // 한국 이탈 방지
+  travelMap.setMaxBounds([[32.5, 123.5], [39.5, 132.5]]);
+
+  // 타일: OpenStreetMap (무료, 상업용 가능)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    maxZoom: 17
+  }).addTo(travelMap);
+
+  // 줌 컨트롤 위치
+  travelMap.zoomControl.setPosition('bottomright');
+
+  refreshTravelPins();
+}
+
+function refreshTravelPins() {
+  if (!travelMap) return;
+
+  // 기존 핀 제거
+  travelPins.forEach(p => p.remove());
+  travelPins = [];
+  openPopup = null;
+
+  const statsBar = document.getElementById('map-stats-bar');
+  const statsText = document.getElementById('map-stats-text');
+  const countEl  = document.getElementById('record-panel-count');
+
+  if (!state.records.length) {
+    statsBar.style.display = 'none';
+    if (countEl) countEl.textContent = '';
+    return;
+  }
+
+  statsBar.style.display = 'flex';
+  statsText.textContent = `여행지 ${state.records.length}곳`;
+  if (countEl) countEl.textContent = `${state.records.length}곳`;
+
+  const bounds = [];
+
+  state.records.forEach((r, idx) => {
+    if (!r.lat || !r.lng) return;
+
+    // 커스텀 핀 아이콘
+    const pinIcon = L.divIcon({
+      className: '',
+      html: `
+        <div class="travel-pin" data-idx="${idx}">
+          <div class="travel-pin-bubble">${r.emoji} ${r.district}</div>
+          <div class="travel-pin-tail"></div>
+        </div>`,
+      iconSize: [0, 0],
+      iconAnchor: [0, 0]
+    });
+
+    const marker = L.marker([r.lat, r.lng], { icon: pinIcon }).addTo(travelMap);
+
+    // 팝업 내용
+    const drivingStr = r.drivingSec ? `<div class="tp-meta">🚗 ${fmtSec(r.drivingSec)}</div>` : '';
+    const memoStr = r.memo ? `<div class="tp-memo">"${r.memo}"</div>` : '';
+    const popupContent = `
+      <div class="tp-popup">
+        <div class="tp-header">
+          <span class="tp-emoji">${r.emoji}</span>
+          <div>
+            <div class="tp-dest">${r.district}</div>
+            <div class="tp-region">${r.region}</div>
+          </div>
+        </div>
+        <div class="tp-divider"></div>
+        <div class="tp-meta">📅 ${r.date}</div>
+        ${drivingStr}
+        ${memoStr}
+      </div>`;
+
+    const popup = L.popup({
+      offset: [0, -8],
+      maxWidth: 220,
+      className: 'travel-popup'
+    }).setContent(popupContent);
+
+    marker.on('click', () => {
+      if (openPopup && travelMap.hasLayer(openPopup)) {
+        travelMap.closePopup(openPopup);
+      }
+      marker.bindPopup(popup).openPopup();
+      openPopup = popup;
+      travelMap.setView([r.lat, r.lng], Math.max(travelMap.getZoom(), 10), { animate: true });
+    });
+
+    travelPins.push(marker);
+    bounds.push([r.lat, r.lng]);
+  });
+
+  // 모든 핀이 보이도록 뷰 조정 (첫 로드 시)
+  if (bounds.length === 1) {
+    travelMap.setView(bounds[0], 11, { animate: false });
+  } else if (bounds.length > 1) {
+    travelMap.fitBounds(bounds, { padding: [40, 40], animate: false });
+  }
+}
+
+// ============================================================
+//  카카오 지도 — 출발지 설정 모달
+// ============================================================
+let kmap = null;          // 카카오 지도 객체
+let kmapGeocoder = null;  // 카카오 Geocoder
+
+function openMapModal() {
+  document.getElementById('map-modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  const loc = state.location || { lat: 37.5665, lng: 126.9780 };
+  state.pendingLoc = { ...loc };
+
+  setTimeout(() => {
+    if (!kmap) {
+      const container = document.getElementById('kakao-map');
+      kmap = new kakao.maps.Map(container, {
+        center: new kakao.maps.LatLng(loc.lat, loc.lng),
+        level: 3
+      });
+      kmapGeocoder = new kakao.maps.services.Geocoder();
+
+      kakao.maps.event.addListener(kmap, 'dragstart', () => {
+        document.getElementById('center-pin').style.transform = 'translate(-50%,-115%) scale(1.15)';
+      });
+      kakao.maps.event.addListener(kmap, 'dragend', () => {
+        document.getElementById('center-pin').style.transform = 'translate(-50%,-100%)';
+        const latlng = kmap.getCenter();
+        state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
+        kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
+      });
+      kakao.maps.event.addListener(kmap, 'zoom_changed', () => {
+        const latlng = kmap.getCenter();
+        state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
+        kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
+      });
+    } else {
+      kmap.setCenter(new kakao.maps.LatLng(loc.lat, loc.lng));
+      kmap.relayout();
+    }
+
+    if (state.pendingAddr) {
+      document.getElementById('map-addr-label').innerHTML = `<strong>${state.pendingAddr}</strong>`;
+    } else {
+      kakaoReverseGeocode(loc.lat, loc.lng);
+    }
+  }, 100);
+}
+
+function closeMapModal() {
+  document.getElementById('addr-results').style.display = 'none';
+  document.getElementById('map-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// 카카오 역지오코딩 (좌표 → 주소)
+function kakaoReverseGeocode(lat, lng) {
+  const el = document.getElementById('map-addr-label');
+  el.textContent = '주소 불러오는 중...';
+  if (!kmapGeocoder) return;
+  kmapGeocoder.coord2Address(lng, lat, (result, status) => {
+    if (status === kakao.maps.services.Status.OK && result[0]) {
+      const r = result[0];
+      const addr = (r.road_address ? r.road_address.address_name : null)
+                || (r.address ? r.address.address_name : '주소 없음');
+      state.pendingAddr = addr;
+      el.innerHTML = `<strong>${addr}</strong>`;
+    } else {
+      el.textContent = '주소를 찾을 수 없습니다.';
+    }
+  });
+}
+
+// 카카오 주소/키워드 검색
+function searchAddress() {
+  const q = document.getElementById('addr-input').value.trim();
+  if (!q) return;
+  const el = document.getElementById('map-addr-label');
+  const resultsEl = document.getElementById('addr-results');
+  el.textContent = '검색 중...';
+  resultsEl.style.display = 'none';
+
+  if (!kmapGeocoder) {
+    el.textContent = '지도가 아직 로딩 중입니다. 잠시 후 다시 시도해주세요.';
+    return;
+  }
+
+  // 키워드 검색 (장소명, 도로명 모두 가능)
+  const ps = new kakao.maps.services.Places();
+  ps.keywordSearch(q, (data, status) => {
+    if (status === kakao.maps.services.Status.OK && data.length > 0) {
+      if (data.length === 1) {
+        // 결과 1개면 바로 이동
+        moveKMapTo(parseFloat(data[0].y), parseFloat(data[0].x), data[0].road_address_name || data[0].address_name || data[0].place_name);
+      } else {
+        // 여러 결과면 드롭다운으로 표시 (최대 5개)
+        resultsEl.innerHTML = data.slice(0, 5).map((d, i) =>
+          `<div class="addr-result-item" onclick="selectAddrResult(${i})">
+            <div class="addr-result-name">${d.place_name}</div>
+            <div class="addr-result-addr">${d.road_address_name || d.address_name}</div>
+          </div>`
+        ).join('');
+        window._searchResults = data;
+        resultsEl.style.display = 'block';
+        el.textContent = `${data.length}개 결과가 있습니다. 선택해주세요.`;
+      }
+    } else {
+      // 키워드 검색 실패 시 주소 검색으로 재시도
+      kmapGeocoder.addressSearch(q, (data, status) => {
+        if (status === kakao.maps.services.Status.OK && data[0]) {
+          moveKMapTo(parseFloat(data[0].y), parseFloat(data[0].x), data[0].road_address ? data[0].road_address.address_name : data[0].address_name);
+        } else {
+          el.textContent = '검색 결과가 없습니다. 다른 검색어를 입력해보세요.';
+        }
+      });
+    }
+  });
+}
+
+function selectAddrResult(idx) {
+  const d = window._searchResults[idx];
+  document.getElementById('addr-results').style.display = 'none';
+  moveKMapTo(parseFloat(d.y), parseFloat(d.x), d.road_address_name || d.address_name || d.place_name);
+}
+
+function moveKMapTo(lat, lng, addr) {
+  const latlng = new kakao.maps.LatLng(lat, lng);
+  kmap.setCenter(latlng);
+  state.pendingLoc = { lat, lng };
+  if (addr) {
+    state.pendingAddr = addr;
+    document.getElementById('map-addr-label').innerHTML = `<strong>${addr}</strong>`;
+  }
+}
+
+function gpsInModal() {
+  if (!navigator.geolocation) { alert('GPS를 지원하지 않는 기기입니다.'); return; }
+  document.getElementById('map-addr-label').textContent = '📡 GPS 위치 가져오는 중...';
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    state.pendingLoc = { lat, lng };
+    kmap.setCenter(new kakao.maps.LatLng(lat, lng));
+    kakaoReverseGeocode(lat, lng);
+  }, () => {
+    document.getElementById('map-addr-label').textContent = 'GPS를 가져올 수 없습니다.';
+  }, { timeout: 8000 });
+}
+
+function confirmLocation() {
+  if (!state.pendingLoc) return;
+  state.location = { ...state.pendingLoc };
+  document.getElementById('location-name').textContent = state.pendingAddr || '직접 설정한 위치';
+  state.pendingAddr = null;
+  closeMapModal();
+  if (state.selectedTime) recalcEligible();
+}
+
+// ============================================================
+//  GPS (메인 화면)
+// ============================================================
+function requestGPS() {
+  setLocText('GPS 위치 가져오는 중...');
+  if (!navigator.geolocation) { setDefaultLoc(); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    updateLocationUI();
+    if (state.selectedTime) recalcEligible();
+  }, setDefaultLoc, { timeout: 8000 });
+}
+
+function setDefaultLoc() {
+  state.location = { lat: 37.5665, lng: 126.9780 };
+  updateLocationUI('서울 (기본값)');
+}
+
+function updateLocationUI(customLabel) {
+  const loc = state.location;
+  if (!loc) return;
+  document.getElementById('location-name').textContent = customLabel || '현재 GPS 위치';
+}
+
+function setLocText(name) {
+  document.getElementById('location-name').textContent = name;
+}
+
+function getLocation() {
+  setLocText('GPS 위치 감지 중...');
+  if (!navigator.geolocation) { setDefaultLoc(); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    state.location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    updateLocationUI();
+  }, setDefaultLoc, { timeout: 8000 });
+}
+
+// ============================================================
+//  OSRM 이동시간 계산 (실제 도로 기반)
+// ============================================================
+// OSRM Table API: 출발점 1개 → 도착점 N개의 소요시간 한번에 계산
+async function calcDrivingTimes(origin, destinations) {
+  // OSRM public demo server (무료, 상업용 대량 사용 시 자체 서버 권장)
+  const coords = [[origin.lng, origin.lat], ...destinations.map(d => [d.lng, d.lat])];
+  const coordStr = coords.map(c => c.join(',')).join(';');
+  const sources = '0';
+  const dests = destinations.map((_,i) => i+1).join(';');
+
+  const url = `https://router.project-osrm.org/table/v1/driving/${coordStr}?sources=${sources}&destinations=${dests}&annotations=duration`;
+
+  const r = await fetch(url);
+  const data = await r.json();
+  if (data.code !== 'Ok') throw new Error('OSRM error');
+  return data.durations[0]; // 초 단위 배열
+}
+
+// 버튼 단계 목록 — 하한선 계산용 (분)
+const TIME_STEPS = [0, 90, 120, 150, 180, 210, 240, 270, 300];
+
+// 선택 시간의 [하한초, 상한초] 반환
+// 예) 120분 선택 → 이전 단계 90분 초과 ~ 120분 이하
+function getTimeRange(selectedMins) {
+  const idx = TIME_STEPS.indexOf(selectedMins);
+  const minMins = idx > 0 ? TIME_STEPS[idx - 1] : 0;
+  return { minSec: minMins * 60, maxSec: selectedMins * 60 };
+}
+
+// 범위 라벨 텍스트 (UI 표시용)
+function fmtRangeLabel(selectedMins) {
+  const idx = TIME_STEPS.indexOf(selectedMins);
+  const minMins = idx > 0 ? TIME_STEPS[idx - 1] : 0;
+  const lo = minMins > 0 ? fmtTime(minMins) : '0분';
+  return `${lo} ~ ${fmtTime(selectedMins)}`;
+}
+
+// 시간 선택 시 + 위치 확정 시 호출
+async function recalcEligible() {
+  if (!state.location || !state.selectedTime) return;
+
+  const badge = document.getElementById('calc-badge');
+  const calcText = document.getElementById('calc-text');
+  badge.classList.add('show');
+  document.getElementById('spin-btn').disabled = true;
+  state.eligibleDistricts = [];
+
+  const { minSec, maxSec } = getTimeRange(state.selectedTime);
+  const allDistricts = [];
+
+  Object.entries(REGIONS).forEach(([regionName, regionData]) => {
+    regionData.districts.forEach(d => {
+      allDistricts.push({ regionName, name: d.name, lat: d.lat, lng: d.lng });
+    });
+  });
+
+  calcText.textContent = `${allDistricts.length}개 지역 이동시간 계산 중...`;
+
+  try {
+    const times = await calcDrivingTimes(state.location, allDistricts);
+    const eligible = [];
+    times.forEach((sec, i) => {
+      if (sec === null) return;
+      // 직전 단계 초과 ~ 선택 단계 이하
+      if (sec > minSec && sec <= maxSec) {
+        eligible.push({ ...allDistricts[i], drivingSec: sec });
+      }
+    });
+
+    state.eligibleDistricts = eligible;
+    badge.classList.remove('show');
+
+    if (eligible.length === 0) {
+      alert(`출발지 기준 ${fmtRangeLabel(state.selectedTime)} 거리의 지역이 없습니다.\n다른 시간대를 선택해보세요.`);
+      document.getElementById('spin-btn').disabled = true;
+    } else {
+      document.getElementById('spin-btn').disabled = false;
+      document.getElementById('spin-btn').textContent = `🎲 여행지 뽑기! (${eligible.length}개 지역 중)`;
+    }
+  } catch(e) {
+    badge.classList.remove('show');
+    calcText.textContent = '서버 연결 실패 — 직선거리로 대체 계산 중...';
+    fallbackCalc(allDistricts, minSec, maxSec);
+  }
+}
+
+// Fallback: 직선거리 기반 (OSRM 실패 시, 고속도로 100km/h 기준)
+function fallbackCalc(allDistricts, minSec, maxSec) {
+  const avgSpeedKmPerSec = 100 / 3600;
+  const eligible = allDistricts.filter(d => {
+    const distKm = haversineKm(state.location.lat, state.location.lng, d.lat, d.lng);
+    const estimatedSec = distKm / avgSpeedKmPerSec;
+    return estimatedSec > minSec && estimatedSec <= maxSec;
+  }).map(d => {
+    const distKm = haversineKm(state.location.lat, state.location.lng, d.lat, d.lng);
+    return { ...d, drivingSec: distKm / avgSpeedKmPerSec };
+  });
+
+  state.eligibleDistricts = eligible;
+  document.getElementById('calc-badge').classList.remove('show');
+
+  if (eligible.length === 0) {
+    alert(`${fmtRangeLabel(state.selectedTime)} 거리의 지역이 없습니다.\n다른 시간대를 선택해보세요.`);
+    document.getElementById('spin-btn').disabled = true;
+  } else {
+    document.getElementById('spin-btn').disabled = false;
+    document.getElementById('spin-btn').textContent = `🎲 여행지 뽑기! (${eligible.length}개 지역 중)`;
+  }
+}
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2-lat1)*Math.PI/180;
+  const dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function fmtTime(mins) {
+  return `${Math.floor(mins/60)}시간${mins%60>0?' '+mins%60+'분':''}`;
+}
+
+function fmtSec(sec) {
+  const h = Math.floor(sec/3600);
+  const m = Math.floor((sec%3600)/60);
+  return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+}
+
+// ============================================================
+//  TIME SELECT
+// ============================================================
+function selectTime(btn, mins) {
+  document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.selectedTime = mins;
+  document.getElementById('spin-btn').textContent = '🎲 여행지 뽑기!';
+  document.getElementById('spin-btn').disabled = true;
+  recalcEligible();
+}
+
+// ============================================================
+//  SPIN
+// ============================================================
+function startSpin() {
+  const eligible = state.eligibleDistricts;
+  if (!eligible.length) { alert('뽑을 수 있는 지역이 없습니다.'); return; }
+
+  // 시/군/구 → 도 단위로 그룹핑
+  const regionGroups = {};
+  eligible.forEach(d => {
+    if (!regionGroups[d.regionName]) regionGroups[d.regionName] = [];
+    regionGroups[d.regionName].push(d);
+  });
+  const regionNames = Object.keys(regionGroups);
+
+  const overlay      = document.getElementById('spin-overlay');
+  const regionEl     = document.getElementById('spin-region-val');
+  const districtEl   = document.getElementById('spin-district-val');
+  const distBlock    = document.getElementById('spin-district-block');
+
+  // 초기화
+  overlay.classList.add('show');
+  regionEl.textContent = '-';
+  regionEl.className = 'spin-value spin-anim';
+  districtEl.textContent = '-';
+  districtEl.className = 'spin-value spin-anim';
+  distBlock.style.opacity = '0';
+
+  // ── 1단계: 도(행정구역) 룰렛 ──
+  let cnt = 0;
+  const REGION_TICKS = 28;
+  const ri = setInterval(() => {
+    regionEl.textContent = regionNames[Math.floor(Math.random() * regionNames.length)];
+    if (++cnt >= REGION_TICKS) {
+      clearInterval(ri);
+
+      // 최종 도 확정 — eligible 에서 비율 가중 랜덤 (많이 들어간 도가 더 자주 뽑힘)
+      const chosenRegion = eligible[Math.floor(Math.random() * eligible.length)].regionName;
+      regionEl.textContent = chosenRegion;
+      regionEl.className = 'spin-value'; // 애니메이션 정지
+
+      // ── 2단계: 시/군/구 룰렛 (0.4초 후 시작) ──
+      setTimeout(() => {
+        distBlock.style.opacity = '1';
+        districtEl.className = 'spin-value spin-anim';
+
+        const dists = regionGroups[chosenRegion];
+        let cnt2 = 0;
+        const DISTRICT_TICKS = 28;
+        const di = setInterval(() => {
+          districtEl.textContent = dists[Math.floor(Math.random() * dists.length)].name;
+          if (++cnt2 >= DISTRICT_TICKS) {
+            clearInterval(di);
+
+            // 최종 시/군/구 확정
+            const chosen = dists[Math.floor(Math.random() * dists.length)];
+            districtEl.textContent = chosen.name;
+            districtEl.className = 'spin-value'; // 애니메이션 정지
+
+            // currentResult 저장 후 결과 표시
+            state.currentResult = { ...chosen, regionName: chosenRegion };
+            setTimeout(() => {
+              overlay.classList.remove('show');
+              showResult();
+            }, 900);
+          }
+        }, 75);
+      }, 400);
+    }
+  }, 75);
+}
+
+// ============================================================
+//  RESULT
+// ============================================================
+function showResult() {
+  const r = state.currentResult;
+  document.getElementById('res-time-label').textContent = fmtRangeLabel(state.selectedTime) + ' 거리';
+  document.getElementById('res-dest').textContent = r.name;
+  document.getElementById('res-region').textContent = `${r.regionName}`;
+
+  const atEl = document.getElementById('res-actual-time');
+  const atText = document.getElementById('res-actual-time-text');
+  if (r.drivingSec) {
+    atText.textContent = `실제 예상 이동시간: ${fmtSec(r.drivingSec)}`;
+    atEl.style.display = 'inline-flex';
+  } else { atEl.style.display = 'none'; }
+
+  document.getElementById('result-overlay').classList.add('show');
+  renderFoodCards(r.name);
+}
+
+function renderFoodCards(district) {
+  const foods = [...FOOD_CATS].sort(()=>Math.random()-.5).slice(0,3);
+  document.getElementById('food-cards-area').innerHTML = foods.map(f=>`
+    <div class="food-card">
+      <div class="food-icon">${f.e}</div>
+      <div><div class="food-name">${district} ${f.n}</div><div class="food-type">${f.t}</div></div>
+      <div class="food-links">
+        <button class="food-link kakao" onclick="openKakaoSearch('${district} ${f.n}')">카카오</button>
+        <button class="food-link naver" onclick="openNaverSearch('${district} ${f.n}')">네이버</button>
+      </div>
+    </div>`).join('');
+}
+
+function closeResult() { document.getElementById('result-overlay').classList.remove('show'); }
+
+function openKakaoMap() { window.open(`https://map.kakao.com/link/search/${encodeURIComponent(state.currentResult.name)}`,'_blank'); }
+function openNaverMap() { window.open(`https://map.naver.com/v5/search/${encodeURIComponent(state.currentResult.name)}`,'_blank'); }
+function openKakaoSearch(q) { window.open(`https://map.kakao.com/link/search/${encodeURIComponent(q)}`,'_blank'); }
+function openNaverSearch(q) { window.open(`https://map.naver.com/v5/search/${encodeURIComponent(q)}`,'_blank'); }
+
+// ============================================================
+//  MEMO & RECORDS
+// ============================================================
+function openMemoModal() {
+  const r = state.currentResult;
+  document.getElementById('memo-dest-label').textContent = `${r.regionName} ${r.name}`;
+  document.getElementById('memo-text').value = '';
+  document.getElementById('memo-modal').classList.add('show');
+}
+function closeMemoModal() { document.getElementById('memo-modal').classList.remove('show'); }
+function pickEmoji(el) {
+  document.querySelectorAll('.emoji-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedEmoji = el.textContent;
+}
+
+function saveRecord() {
+  const r = state.currentResult;
+  const now = new Date();
+  const rec = {
+    id: Date.now(),
+    region: r.regionName, district: r.name,
+    lat: r.lat, lng: r.lng,
+    drivingSec: r.drivingSec || null,
+    emoji: state.selectedEmoji,
+    memo: document.getElementById('memo-text').value,
+    date: `${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()}`
+  };
+  state.records.unshift(rec);
+  localStorage.setItem('tr-records', JSON.stringify(state.records));
+  closeMemoModal(); closeResult();
+  renderRecords();
+  refreshTravelPins();
+  setTimeout(() => goPage('map', document.querySelectorAll('.nav-btn')[1]), 300);
+}
+
+function renderRecords() {
+  const list = document.getElementById('records-list');
+  if (!state.records.length) {
+    list.innerHTML = `<div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <p>아직 여행 기록이 없어요.<br>첫 여행지를 뽑아보세요!</p></div>`;
+    return;
+  }
+  list.innerHTML = state.records.map(r=>`
+    <div class="record-card">
+      <div class="record-thumb">${r.emoji}</div>
+      <div class="record-info">
+        <div class="record-dest">${r.district}</div>
+        <div class="record-meta">${r.region} · ${r.date}${r.drivingSec?` · 🚗 ${fmtSec(r.drivingSec)}`:''}</div>
+        <div class="record-memo">${r.memo||'메모 없음'}</div>
+      </div>
+    </div>`).join('');
+}
+
+function clearAllRecords() {
+  if (!confirm('모든 여행 기록을 삭제할까요?')) return;
+  state.records = [];
+  localStorage.setItem('tr-records','[]');
+  renderRecords();
+  refreshTravelPins();
+}
+
+// ============================================================
+//  CALENDAR
+// ============================================================
+let calY, calM, calSel;
+
+function getFirstSat(y, m) {
+  const d = new Date(y, m, 1);
+  return new Date(y, m, 1 + (6 - d.getDay() + 7) % 7);
+}
+
+function openCalModal() {
+  const now = new Date();
+  if (state.tripDate) { calY=state.tripDate.getFullYear(); calM=state.tripDate.getMonth(); calSel=new Date(state.tripDate); }
+  else { calY=now.getFullYear(); calM=now.getMonth(); calSel=null; }
+  renderCal();
+  document.getElementById('cal-modal').classList.add('show');
+}
+function closeCalModal() { document.getElementById('cal-modal').classList.remove('show'); }
+
+function calMove(d) { calM+=d; if(calM>11){calM=0;calY++;} if(calM<0){calM=11;calY--;} renderCal(); }
+
+function renderCal() {
+  const MN=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  document.getElementById('cal-month-label').textContent=`${calY}년 ${MN[calM]}`;
+  const fs = getFirstSat(calY,calM);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const first = new Date(calY,calM,1);
+  const last = new Date(calY,calM+1,0);
+  const DOW=['일','월','화','수','목','금','토'];
+
+  let h = DOW.map(d=>`<div class="cal-dow">${d}</div>`).join('');
+
+  // prev month fill
+  const prevLast = new Date(calY,calM,0).getDate();
+  for(let i=0;i<first.getDay();i++){
+    h+=`<button class="cal-day other" disabled>${prevLast-first.getDay()+1+i}</button>`;
+  }
+
+  for(let d=1;d<=last.getDate();d++){
+    const dt=new Date(calY,calM,d); dt.setHours(0,0,0,0);
+    const dow=dt.getDay();
+    const isPast=dt<today;
+    const isSel=calSel&&dt.getTime()===calSel.getTime();
+    const isFS=dt.getTime()===fs.getTime();
+    const isToday=dt.getTime()===today.getTime();
+    let cls='cal-day';
+    if(dow===0) cls+=' sun'; if(dow===6) cls+=' sat';
+    if(isToday) cls+=' today';
+    if(isFS&&!isSel) cls+=' suggested';
+    if(isSel) cls+=' selected';
+    h+=`<button class="${cls}" ${isPast?'disabled':''} onclick="calPick(${calY},${calM},${d})">${d}</button>`;
+  }
+
+  // next month fill
+  const total=first.getDay()+last.getDate();
+  const rem = total%7===0?0:7-total%7;
+  for(let d=1;d<=rem;d++) h+=`<button class="cal-day other" disabled>${d}</button>`;
+
+  document.getElementById('cal-grid').innerHTML=h;
+
+  const cb=document.getElementById('cal-confirm-btn');
+  if(calSel){
+    const dw=['일','월','화','수','목','금','토'][calSel.getDay()];
+    cb.textContent=`${calSel.getMonth()+1}월 ${calSel.getDate()}일 (${dw}) 선택 ✓`;
+    cb.disabled=false;
+  } else { cb.textContent='날짜 선택 후 확인'; cb.disabled=true; }
+}
+
+function calPick(y,m,d) { calSel=new Date(y,m,d); calY=y; calM=m; renderCal(); }
+
+function confirmCalDate() {
+  if(!calSel) return;
+  state.tripDate=new Date(calSel);
+  updateTripDateUI();
+  closeCalModal();
+}
+
+function updateTripDateUI() {
+  if(!state.tripDate) return;
+  const y=state.tripDate.getFullYear(), m=state.tripDate.getMonth()+1, d=state.tripDate.getDate();
+  const dw=['일','월','화','수','목','금','토'][state.tripDate.getDay()];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const diff=Math.round((state.tripDate-today)/86400000);
+  const dStr=diff>0?`D-${diff}`:diff===0?'D-Day!': `D+${Math.abs(diff)}`;
+  document.getElementById('trip-date-text').textContent=`${y}년 ${m}월 ${d}일 (${dw})`;
+  const fs=getFirstSat(y,state.tripDate.getMonth());
+  const extra=state.tripDate.getTime()===fs.getTime()?' ✨ 첫째주 토요일!':'';
+  document.getElementById('trip-date-sub').textContent=`${dStr}${extra} — 탭하여 날짜 변경`;
+  document.getElementById('header-date').textContent=`${m}/${d}(${dw}) ${dStr}`;
+}
+
+// ============================================================
+//  NAV
+// ============================================================
+function goPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='map') {
+    setTimeout(()=>{ initTravelMap(); renderRecords(); }, 50);
+  }
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+function init() {
+  const now=new Date();
+  const fs=getFirstSat(now.getFullYear(),now.getMonth());
+  const today=new Date(); today.setHours(0,0,0,0);
+  if(fs>=today) { state.tripDate=fs; }
+  else {
+    let nm=now.getMonth()+1, ny=now.getFullYear();
+    if(nm>11){nm=0;ny++;}
+    state.tripDate=getFirstSat(ny,nm);
+  }
+  updateTripDateUI();
+  getLocation();
+  renderRecords();
+}
+
+init();
+</script>
+</body>
+</html>
