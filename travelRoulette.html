@@ -416,9 +416,9 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
   <button class="nav-btn" onclick="goPage('map',this)">
     <svg viewBox="0 0 24 24"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>지도
   </button>
-  <button class="nav-btn" onclick="goPage('settings',this)">
+  <!-- <button class="nav-btn" onclick="goPage('settings',this)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>설정
-  </button>
+  </button> -->
 </nav>
 
 <!-- ======= SPINNING OVERLAY ======= -->
@@ -447,7 +447,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
     <div class="section-label">🍜 맛집 검색</div>
     <div id="food-cards-area"></div>
     <div class="map-btns">
-      <button class="result-map-btn kakao" onclick="openKakaoMap()" style="background-color: #FAE100; border:0px; color:#fefefe">카카오맵</button>
+      <button class="result-map-btn kakao" onclick="openKakaoMap()" style="background-color: #FAE100; border:0px;">카카오맵</button>
       <button class="result-map-btn naver" onclick="openNaverMap()" style="background-color: #2Db400; border:0px; color:#fefefe">네이버지도</button>
     </div>
     <div class="result-actions">
@@ -540,76 +540,151 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 
 <script>
 // ============================================================
-//  카카오 지도 설정 및 출발지 모달 기능
+//  카카오 지도 — 출발지 설정 모달 (드래그 핀 + 검색 통합본)
 // ============================================================
+let kmap = null;
+let kmapGeocoder = null;
 
-let kakaoMap = null;
-let geocoder = null;
+function openMapModal() {
+  const modal = document.getElementById('map-modal');
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
 
-// 모달을 열고 지도를 렌더링하는 함수 
-// (기존에 출발지 설정 컨테이너를 클릭했을 때 실행되도록 연결해 주세요)
-function openLocationModal() {
-  const mapModal = document.querySelector('.map-modal-overlay');
-  mapModal.classList.add('show');
-  
-  // 모달이 화면에 나타난 직후에 지도를 생성해야 크기가 깨지지 않습니다.
+  const loc = state.location || { lat: 37.5665, lng: 126.9780 };
+  state.pendingLoc = { ...loc };
+
   setTimeout(() => {
-    if (!kakaoMap) {
-      initKakaoMap(); // 지도가 없으면 최초 생성
+    if (!kmap) {
+      const container = document.getElementById('kakao-map');
+      kmap = new kakao.maps.Map(container, {
+        center: new kakao.maps.LatLng(loc.lat, loc.lng),
+        level: 3
+      });
+      kmapGeocoder = new kakao.maps.services.Geocoder();
+
+      // 1. 지도를 드래그하기 시작할 때 핀 애니메이션
+      kakao.maps.event.addListener(kmap, 'dragstart', () => {
+        document.getElementById('center-pin').style.transform = 'translate(-50%,-115%) scale(1.15)';
+      });
+
+      // 2. 지도를 움직이고 손을 뗐을 때 (idle) 중앙 좌표의 주소를 읽어옴
+      kakao.maps.event.addListener(kmap, 'idle', () => {
+        document.getElementById('center-pin').style.transform = 'translate(-50%,-100%)';
+        const latlng = kmap.getCenter();
+        state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
+        kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
+      });
     } else {
-      kakaoMap.relayout(); // 이미 있다면 크기만 재계산
+      kmap.setCenter(new kakao.maps.LatLng(loc.lat, loc.lng));
+      kmap.relayout();
+    }
+
+    if (state.pendingAddr) {
+      document.getElementById('map-addr-label').innerHTML = `<strong>${state.pendingAddr}</strong>`;
+    } else {
+      kakaoReverseGeocode(loc.lat, loc.lng);
     }
   }, 100);
 }
 
-// 모달 닫기 기능
-document.querySelector('.map-modal-close').addEventListener('click', () => {
-  document.querySelector('.map-modal-overlay').classList.remove('show');
-});
+function closeMapModal() {
+  document.getElementById('addr-results').style.display = 'none';
+  document.getElementById('map-modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
 
-function initKakaoMap() {
-  const mapContainer = document.getElementById('kakao-map'); 
-  
-  // 1. 지도 옵션 설정 (카카오 3~4레벨이 화면상 상세한 16레벨 수준의 뷰어입니다)
-  const mapOption = {
-    center: new kakao.maps.LatLng(37.566826, 126.978656), // 서울시청 기본 좌표
-    level: 3 
-  };
-
-  // 2. 카카오 지도 객체 생성
-  kakaoMap = new kakao.maps.Map(mapContainer, mapOption);
-  
-  // 3. 주소-좌표 변환 객체 생성
-  geocoder = new kakao.maps.services.Geocoder();
-
-  // 최초 로드 시 중심 좌표 주소 가져오기
-  updateAddressFromCenter();
-
-  // 4. 지도 'idle' 이벤트 등록 (드래그, 확대/축소 등 지도가 멈췄을 때 발생)
-  kakao.maps.event.addListener(kakaoMap, 'idle', function() {
-    updateAddressFromCenter();
+// 역지오코딩 (좌표 -> 주소 변환)
+function kakaoReverseGeocode(lat, lng) {
+  const el = document.getElementById('map-addr-label');
+  el.textContent = '주소 불러오는 중...';
+  if (!kmapGeocoder) return;
+  kmapGeocoder.coord2Address(lng, lat, (result, status) => {
+    if (status === kakao.maps.services.Status.OK && result[0]) {
+      const r = result[0];
+      const addr = (r.road_address ? r.road_address.address_name : null) || (r.address ? r.address.address_name : '주소 없음');
+      state.pendingAddr = addr;
+      el.innerHTML = `<strong>${addr}</strong>`;
+    } else {
+      el.textContent = '주소를 찾을 수 없습니다.';
+    }
   });
 }
 
-// 중심 좌표를 읽어와서 모달 하단 텍스트를 업데이트하는 함수
-function updateAddressFromCenter() {
-  const center = kakaoMap.getCenter(); // 지도의 현재 중심 좌표
+// 키워드 및 주소 검색 기능
+function searchAddress() {
+  const q = document.getElementById('addr-input').value.trim();
+  if (!q) return;
+  const el = document.getElementById('map-addr-label');
+  const resultsEl = document.getElementById('addr-results');
+  el.textContent = '검색 중...';
+  resultsEl.style.display = 'none';
 
-  // 중심 좌표를 상세 주소(지번/도로명)로 변환
-  geocoder.coord2Address(center.getLng(), center.getLat(), function(result, status) {
-    if (status === kakao.maps.services.Status.OK) {
-      // 도로명 주소가 있으면 도로명, 없으면 지번 주소 선택
-      const address = !!result[0].road_address ? 
-                      result[0].road_address.address_name : 
-                      result[0].address.address_name;
-      
-      // 화면의 주소 표시 영역(.map-selected-addr)에 텍스트 적용
-      const addrDisplay = document.querySelector('.map-selected-addr');
-      if (addrDisplay) {
-        addrDisplay.textContent = address;
+  if (!kmapGeocoder) return;
+
+  const ps = new kakao.maps.services.Places();
+  ps.keywordSearch(q, (data, status) => {
+    if (status === kakao.maps.services.Status.OK && data.length > 0) {
+      if (data.length === 1) {
+        moveKMapTo(parseFloat(data[0].y), parseFloat(data[0].x), data[0].road_address_name || data[0].address_name || data[0].place_name);
+      } else {
+        resultsEl.innerHTML = data.slice(0, 5).map((d, i) =>
+          `<div class="addr-result-item" onclick="selectAddrResult(${i})">
+            <div class="addr-result-name">${d.place_name}</div>
+            <div class="addr-result-addr">${d.road_address_name || d.address_name}</div>
+          </div>`
+        ).join('');
+        window._searchResults = data;
+        resultsEl.style.display = 'block';
+        el.textContent = `${data.length}개 결과가 있습니다. 선택해주세요.`;
       }
+    } else {
+      kmapGeocoder.addressSearch(q, (data, status) => {
+        if (status === kakao.maps.services.Status.OK && data[0]) {
+          moveKMapTo(parseFloat(data[0].y), parseFloat(data[0].x), data[0].road_address ? data[0].road_address.address_name : data[0].address_name);
+        } else {
+          el.textContent = '검색 결과가 없습니다. 다른 검색어를 입력해보세요.';
+        }
+      });
     }
   });
+}
+
+function selectAddrResult(idx) {
+  const d = window._searchResults[idx];
+  document.getElementById('addr-results').style.display = 'none';
+  moveKMapTo(parseFloat(d.y), parseFloat(d.x), d.road_address_name || d.address_name || d.place_name);
+}
+
+function moveKMapTo(lat, lng, addr) {
+  const latlng = new kakao.maps.LatLng(lat, lng);
+  kmap.setCenter(latlng);
+  state.pendingLoc = { lat, lng };
+  if (addr) {
+    state.pendingAddr = addr;
+    document.getElementById('map-addr-label').innerHTML = `<strong>${addr}</strong>`;
+  }
+}
+
+function gpsInModal() {
+  if (!navigator.geolocation) { alert('GPS를 지원하지 않는 기기입니다.'); return; }
+  document.getElementById('map-addr-label').textContent = '📡 GPS 위치 가져오는 중...';
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude, lng = pos.coords.longitude;
+    state.pendingLoc = { lat, lng };
+    kmap.setCenter(new kakao.maps.LatLng(lat, lng));
+    kakaoReverseGeocode(lat, lng);
+  }, () => {
+    document.getElementById('map-addr-label').textContent = 'GPS를 가져올 수 없습니다.';
+  }, { timeout: 8000 });
+}
+
+function confirmLocation() {
+  if (!state.pendingLoc) return;
+  state.location = { ...state.pendingLoc };
+  document.getElementById('location-name').textContent = state.pendingAddr || '직접 설정한 위치';
+  state.pendingAddr = null;
+  closeMapModal();
+  if (state.selectedTime) recalcEligible();
 }
 
 // 기존 '출발지' 버튼(location-display) 클릭 시 모달이 열리도록 이벤트 리스너 연결
@@ -837,50 +912,50 @@ function refreshTravelPins() {
 // ============================================================
 //  카카오 지도 — 출발지 설정 모달
 // ============================================================
-let kmap = null;          // 카카오 지도 객체
-let kmapGeocoder = null;  // 카카오 Geocoder
+// let kmap = null;          // 카카오 지도 객체
+// let kmapGeocoder = null;  // 카카오 Geocoder
 
-function openMapModal() {
-  document.getElementById('map-modal').classList.add('show');
-  document.body.style.overflow = 'hidden';
-  const loc = state.location || { lat: 37.5665, lng: 126.9780 };
-  state.pendingLoc = { ...loc };
+// function openMapModal() {
+//   document.getElementById('map-modal').classList.add('show');
+//   document.body.style.overflow = 'hidden';
+//   const loc = state.location || { lat: 37.5665, lng: 126.9780 };
+//   state.pendingLoc = { ...loc };
 
-  setTimeout(() => {
-    if (!kmap) {
-      const container = document.getElementById('kakao-map');
-      kmap = new kakao.maps.Map(container, {
-        center: new kakao.maps.LatLng(loc.lat, loc.lng),
-        level: 3
-      });
-      kmapGeocoder = new kakao.maps.services.Geocoder();
+//   setTimeout(() => {
+//     if (!kmap) {
+//       const container = document.getElementById('kakao-map');
+//       kmap = new kakao.maps.Map(container, {
+//         center: new kakao.maps.LatLng(loc.lat, loc.lng),
+//         level: 3
+//       });
+//       kmapGeocoder = new kakao.maps.services.Geocoder();
 
-      kakao.maps.event.addListener(kmap, 'dragstart', () => {
-        document.getElementById('center-pin').style.transform = 'translate(-50%,-115%) scale(1.15)';
-      });
-      kakao.maps.event.addListener(kmap, 'dragend', () => {
-        document.getElementById('center-pin').style.transform = 'translate(-50%,-100%)';
-        const latlng = kmap.getCenter();
-        state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
-        kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
-      });
-      kakao.maps.event.addListener(kmap, 'zoom_changed', () => {
-        const latlng = kmap.getCenter();
-        state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
-        kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
-      });
-    } else {
-      kmap.setCenter(new kakao.maps.LatLng(loc.lat, loc.lng));
-      kmap.relayout();
-    }
+//       kakao.maps.event.addListener(kmap, 'dragstart', () => {
+//         document.getElementById('center-pin').style.transform = 'translate(-50%,-115%) scale(1.15)';
+//       });
+//       kakao.maps.event.addListener(kmap, 'dragend', () => {
+//         document.getElementById('center-pin').style.transform = 'translate(-50%,-100%)';
+//         const latlng = kmap.getCenter();
+//         state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
+//         kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
+//       });
+//       kakao.maps.event.addListener(kmap, 'zoom_changed', () => {
+//         const latlng = kmap.getCenter();
+//         state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
+//         kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
+//       });
+//     } else {
+//       kmap.setCenter(new kakao.maps.LatLng(loc.lat, loc.lng));
+//       kmap.relayout();
+//     }
 
-    if (state.pendingAddr) {
-      document.getElementById('map-addr-label').innerHTML = `<strong>${state.pendingAddr}</strong>`;
-    } else {
-      kakaoReverseGeocode(loc.lat, loc.lng);
-    }
-  }, 100);
-}
+//     if (state.pendingAddr) {
+//       document.getElementById('map-addr-label').innerHTML = `<strong>${state.pendingAddr}</strong>`;
+//     } else {
+//       kakaoReverseGeocode(loc.lat, loc.lng);
+//     }
+//   }, 100);
+// }
 
 function closeMapModal() {
   document.getElementById('addr-results').style.display = 'none';
@@ -1406,7 +1481,7 @@ function renderCal() {
   const cb=document.getElementById('cal-confirm-btn');
   if(calSel){
     const dw=['일','월','화','수','목','금','토'][calSel.getDay()];
-    cb.textContent=`${calSel.getMonth()+1}월 ${calSel.getDate()}일 (${dw}) 선택 ✓`;
+    cb.textContent=`${calSel.getMonth()+1}월 ${calSel.getDate()}일 (${dw}) 선택✅`;
     cb.disabled=false;
   } else { cb.textContent='날짜 선택 후 확인'; cb.disabled=true; }
 }
