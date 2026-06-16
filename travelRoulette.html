@@ -6,19 +6,10 @@
 <title>여행 룰렛 🎯</title>
 <!-- Leaflet CSS (여행 기록 지도 탭용) -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<!-- 카카오 지도 JavaScript API -->
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1930d566fd80c7e8a7869c1e9bf73dbf"></script>
-<script>  
-const API_KEYS = {
+<script>
+  const API_KEYS = {
     KAKAO_JS_KEY:   '1930d566fd80c7e8a7869c1e9bf73dbf'
   };
-  var container = document.getElementById('kakao_map'); //지도를 담을 영역의 DOM 레퍼런스
-var options = { //지도를 생성할 때 필요한 기본 옵션
-	center: new kakao.maps.LatLng(33.450701, 126.570667), //지도의 중심좌표.
-	level: 3 //지도의 레벨(확대, 축소 정도)
-};
-
-var map = new kakao.maps.Map(container, options); //지도 생성 및 객체 리턴
 </script>
 
 <style>
@@ -170,8 +161,8 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 .leaflet-popup-tip-container{display:none;}
 
 /* ─── MAP MODAL (출발지 설정) ─── */
-.map-modal-overlay{display:none;position:fixed;inset:0;z-index:800;background:var(--bg-card);}
-.map-modal-overlay.show{display:block;}
+.map-modal-overlay{position:fixed;inset:0;z-index:800;background:var(--bg-card);visibility:hidden;pointer-events:none;}
+.map-modal-overlay.show{visibility:visible;pointer-events:auto;}
 .map-modal-header{background:var(--bg-card);padding:14px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);position:absolute;top:0;left:0;right:0;height:52px;z-index:5;}
 .map-modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);padding:4px 8px;line-height:1;}
 .map-modal-title{font-size:16px;font-weight:700;flex:1;}
@@ -324,7 +315,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
     </div>
     <button class="btn-gps-main" onclick="requestGPS()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-      현재 GPS 위치로 재설정
+      현재 위치로 설정
     </button>
   </div>
 
@@ -424,9 +415,9 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
   <button class="nav-btn" onclick="goPage('map',this)">
     <svg viewBox="0 0 24 24"><polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>지도
   </button>
-  <button class="nav-btn" onclick="goPage('settings',this)">
+  <!-- <button class="nav-btn" onclick="goPage('settings',this)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>설정
-  </button>
+  </button> -->
 </nav>
 
 <!-- ======= SPINNING OVERLAY ======= -->
@@ -778,47 +769,17 @@ function openMapModal() {
   const loc = state.location || { lat: 37.5665, lng: 126.9780 };
   state.pendingLoc = { ...loc };
 
-  // 모달이 display:block 된 직후 지도 초기화 (requestAnimationFrame으로 렌더 후 실행)
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      if (!kmap) {
-        const container = document.getElementById('kakao-map');
-        const mapW = container.offsetWidth;
-        const mapH = container.offsetHeight;
-        console.log('[카카오지도] 컨테이너 크기:', mapW, 'x', mapH);
+  // SDK가 body 하단에서 이미 초기화됨 — 위치 이동 + 레이아웃 갱신만
+  if (kmap) {
+    kmap.relayout();
+    kmap.setCenter(new kakao.maps.LatLng(loc.lat, loc.lng));
+  }
 
-        kmap = new kakao.maps.Map(container, {
-          center: new kakao.maps.LatLng(loc.lat, loc.lng),
-          level: 3
-        });
-        kmapGeocoder = new kakao.maps.services.Geocoder();
-
-        kakao.maps.event.addListener(kmap, 'dragstart', () => {
-          document.getElementById('center-pin').style.transform = 'translate(-50%,-115%) scale(1.15)';
-        });
-        kakao.maps.event.addListener(kmap, 'dragend', () => {
-          document.getElementById('center-pin').style.transform = 'translate(-50%,-100%)';
-          const latlng = kmap.getCenter();
-          state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
-          kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
-        });
-        kakao.maps.event.addListener(kmap, 'zoom_changed', () => {
-          const latlng = kmap.getCenter();
-          state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
-          kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
-        });
-      } else {
-        kmap.relayout();
-        kmap.setCenter(new kakao.maps.LatLng(loc.lat, loc.lng));
-      }
-
-      if (state.pendingAddr) {
-        document.getElementById('map-addr-label').innerHTML = `<strong>${state.pendingAddr}</strong>`;
-      } else {
-        kakaoReverseGeocode(loc.lat, loc.lng);
-      }
-    });
-  });
+  if (state.pendingAddr) {
+    document.getElementById('map-addr-label').innerHTML = `<strong>${state.pendingAddr}</strong>`;
+  } else {
+    kakaoReverseGeocode(loc.lat, loc.lng);
+  }
 }
 
 function closeMapModal() {
@@ -1405,6 +1366,41 @@ function init() {
 }
 
 init();
+</script>
+
+<!-- 카카오 지도 SDK: body 맨 아래 로드 (공식 문서 방식) -->
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1930d566fd80c7e8a7869c1e9bf73dbf&libraries=services"></script>
+<script>
+// SDK 로드 완료 후 바로 지도 초기화 (공식 문서 방식)
+(function initKakaoMap() {
+  var container = document.getElementById('kakao-map');
+  var options = {
+    center: new kakao.maps.LatLng(37.5665, 126.9780),
+    level: 3
+  };
+  kmap = new kakao.maps.Map(container, options);
+  kmapGeocoder = new kakao.maps.services.Geocoder();
+
+  // 드래그 이벤트
+  kakao.maps.event.addListener(kmap, 'dragstart', function() {
+    var pin = document.getElementById('center-pin');
+    if (pin) pin.style.transform = 'translate(-50%,-115%) scale(1.15)';
+  });
+  kakao.maps.event.addListener(kmap, 'dragend', function() {
+    var pin = document.getElementById('center-pin');
+    if (pin) pin.style.transform = 'translate(-50%,-100%)';
+    var latlng = kmap.getCenter();
+    state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
+    kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
+  });
+  // 줌 이벤트
+  kakao.maps.event.addListener(kmap, 'zoom_changed', function() {
+    var latlng = kmap.getCenter();
+    state.pendingLoc = { lat: latlng.getLat(), lng: latlng.getLng() };
+    kakaoReverseGeocode(latlng.getLat(), latlng.getLng());
+  });
+  console.log('[카카오지도] 초기화 완료');
+})();
 </script>
 </body>
 </html>
