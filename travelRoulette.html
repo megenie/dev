@@ -113,7 +113,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 
 #travel-map-wrap{width:100%;display:flex;flex-direction:column;height:calc(100vh - 130px);}
 #travel-map{flex:1;min-height:0;z-index:1;}
-.map-stats-bar{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:12px;font-size:12px;font-weight:600;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:10;white-space:nowrap;pointer-events:none;}
+.map-stats-bar{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:12px;font-size:12px;font-weight:600;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:10;white-space:nowrap;pointer-events:none;}
 .map-stats-dot{width:8px;height:8px;border-radius:50%;background:#F97316;flex-shrink:0;}
 .record-panel{background:var(--bg-card);border-top:1px solid var(--border);flex-shrink:0;overflow-y:auto;max-height:260px;}
 .record-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;position:sticky;top:0;background:var(--bg-card);border-bottom:1px solid var(--border);z-index:2;}
@@ -236,10 +236,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
-/* 그룹 리스트 슬라이드 삭제 */
-.group-list-item{position:relative;overflow:hidden;border-radius:var(--r-md);margin-bottom:10px;touch-action:pan-y;}
-.group-list-inner{transition:transform .25s ease;background:var(--bg-card);}
-.group-delete-bg{position:absolute;right:0;top:0;bottom:0;width:80px;background:#DC2626;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;border-radius:0 var(--r-md) var(--r-md) 0;cursor:pointer;}
+/* 그룹 리스트 스타일 */
 /* 그룹 코드 박스 */
 .group-created-box{background:var(--primary-light);border:2px solid var(--primary);border-radius:var(--r-md);padding:20px;text-align:center;margin-bottom:14px;}
 .group-created-code{font-size:32px;font-weight:900;letter-spacing:8px;color:var(--primary-dark);font-family:monospace;margin:10px 0;}
@@ -346,10 +343,10 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
   <div class="card">
     <div class="card-title">앱 정보</div>
     <div style="font-size:13px;color:var(--text-muted);line-height:1.9;">
-      <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p>
-      <p>📍 GPS + 지도 드래그 + 주소 검색 출발지</p>
+      <!-- <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p> -->
+      <!-- <p>📍 GPS + 지도 드래그 + 주소 검색 출발지</p> -->
       <p>🚗 OSRM 실제 도로 이동시간 기반 필터링</p>
-      <p>🗺 OpenStreetMap + Leaflet (무료)</p>
+      <p>🗺 OpenStreetMap + Leaflet</p>
     </div>
   </div>
 
@@ -666,6 +663,12 @@ async function restoreGroups(codes) {
 }
 
 // 활성 그룹 전환
+function confirmSwitchGroup(code, name) {
+  if (confirm(`"${name}"을 메인으로 보시겠습니까?`)) {
+    switchGroup(code);
+  }
+}
+
 async function switchGroup(code) {
   if (fbUnsubscribe) { fbUnsubscribe(); fbUnsubscribe = null; }
   state.groupCode = code;
@@ -692,6 +695,12 @@ async function switchGroup(code) {
 }
 
 async function handleInvite(code) {
+  // 이미 가입된 그룹인지 먼저 확인
+  if (state.groups.find(g => g.code === code)) {
+    alert('이미 가입된 그룹입니다!');
+    history.replaceState({}, '', location.pathname);
+    return;
+  }
   const { db, ref, get } = window._fb;
   try {
     const snap = await get(ref(db, `groups/${code}/info`));
@@ -857,11 +866,17 @@ async function renderGroupSection() {
   }
   const { db, ref, get } = window._fb;
 
-  // ── 참여 중인 그룹 카드들 ──
+  // ── 참여 중인 그룹 카드들 (보는 중인 그룹 맨 위) ──
   let groupCardsHTML = '';
   if (state.groups.length > 0) {
     groupCardsHTML = `<div style="font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:.6px;margin-bottom:8px;">📋 등록된 그룹 <span style="color:var(--primary)">${state.groups.length}개</span></div>`;
-    for (const grp of state.groups) {
+    // 보는 중인 그룹이 항상 최상단
+    const sortedGroups = [...state.groups].sort((a, b) => {
+      if (a.code === state.groupCode) return -1;
+      if (b.code === state.groupCode) return 1;
+      return 0;
+    });
+    for (const grp of sortedGroups) {
       let members = {};
       try {
         const snap = await get(ref(db, `groups/${grp.code}/members`));
@@ -874,38 +889,52 @@ async function renderGroupSection() {
       const isActive = state.groupCode === grp.code;
 
       groupCardsHTML += `
-        <div class="group-list-item" id="gli-${grp.code}">
-          <div class="group-delete-bg" id="gli-del-${grp.code}" onclick="leaveGroup('${grp.code}')" style="opacity:0;transition:opacity .2s;">🗑<br>나가기</div>
-          <div class="group-list-inner" id="gli-inner-${grp.code}"
-            ontouchstart="glTouchStart(event,'${grp.code}')"
-            ontouchmove="glTouchMove(event,'${grp.code}')"
-            ontouchend="glTouchEnd(event,'${grp.code}')">
-            <div style="border:2px solid ${isActive?'var(--primary)':'var(--border)'};border-radius:var(--r-md);padding:14px;background:${isActive?'var(--primary-light)':'var(--bg-card)'};">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                <div>
-                  <div style="font-size:15px;font-weight:700;color:var(--text);">${grp.name}</div>
-                  <!-- 초대코드 — 클릭하면 복사 -->
-                  <div onclick="copyCode('${grp.code}')" title="탭하여 코드 복사"
-                    style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;cursor:pointer;
-                           font-family:monospace;font-size:13px;font-weight:700;letter-spacing:3px;
-                           color:var(--primary-dark);border-bottom:1.5px dashed #93C5FD;padding-bottom:1px;">
-                    ${grp.code}
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--primary);flex-shrink:0;">
-                      <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
-                  </div>
-                </div>
-                ${isActive
-                  ? '<div style="font-size:11px;color:var(--primary);font-weight:700;background:white;padding:3px 8px;border-radius:10px;border:1px solid #BFDBFE;">✓ 보는 중</div>'
-                  : `<button onclick="switchGroup('${grp.code}')" style="font-size:12px;font-weight:700;color:var(--primary);background:white;border:1.5px solid #BFDBFE;border-radius:8px;padding:4px 10px;cursor:pointer;">보기</button>`}
+        <div style="border:2px solid ${isActive?'var(--primary)':'var(--border)'};border-radius:var(--r-md);padding:14px;margin-bottom:10px;background:${isActive?'var(--primary-light)':'var(--bg-card)'};">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="flex:1;min-width:0;margin-right:8px;">
+              <!-- 그룹명 표시 모드 -->
+              <div id="gname-view-${grp.code}" style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:15px;font-weight:700;color:var(--text);">${grp.name}</span>
+                <button onclick="startEditGroupName('${grp.code}')" title="그룹명 수정"
+                  style="background:none;border:none;cursor:pointer;padding:2px;line-height:0;flex-shrink:0;opacity:.5;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--text-muted);">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
               </div>
-              <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">멤버 ${memberCount}명 — ${memberNames}</div>
-              <div style="display:flex;gap:6px;">
-                <button onclick="copyInviteLink('${grp.code}')" style="flex:1;padding:8px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;">🔗 초대 링크 복사</button>
-                <button onclick="shareInvite('${grp.code}')" style="padding:8px 12px;background:var(--bg-card);color:var(--primary);border:1.5px solid #BFDBFE;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;">📤</button>
+              <!-- 그룹명 편집 모드 -->
+              <div id="gname-edit-${grp.code}" style="display:none;align-items:center;gap:6px;">
+                <input id="gname-input-${grp.code}" type="text" value="${grp.name}" maxlength="15"
+                  onkeydown="if(event.key==='Enter')saveGroupName('${grp.code}')"
+                  style="font-size:14px;font-weight:700;color:var(--text);
+                         border:none;border-bottom:2px solid var(--primary);
+                         background:transparent;outline:none;width:120px;padding:1px 2px;">
+                <button onclick="saveGroupName('${grp.code}')"
+                  style="padding:3px 10px;background:var(--primary);color:white;border:none;
+                         border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">
+                  완료
+                </button>
               </div>
-              <div style="font-size:10px;color:#CBD5E1;margin-top:6px;text-align:right;">← 왼쪽으로 밀어서 나가기</div>
+              <!-- 초대코드 — 클릭하면 복사 -->
+              <div onclick="copyCode('${grp.code}')" title="탭하여 코드 복사"
+                style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;cursor:pointer;
+                       font-family:monospace;font-size:13px;font-weight:700;letter-spacing:3px;
+                       color:var(--primary-dark);border-bottom:1.5px dashed #93C5FD;padding-bottom:1px;">
+                ${grp.code}
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--primary);flex-shrink:0;">
+                  <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              </div>
             </div>
+            ${isActive
+              ? '<div style="font-size:11px;color:var(--primary);font-weight:700;background:white;padding:3px 8px;border-radius:10px;border:1px solid #BFDBFE;">✓ 보는 중</div>'
+              : `<button onclick="confirmSwitchGroup('${grp.code}','${grp.name}')" style="font-size:12px;font-weight:700;color:var(--primary);background:white;border:1.5px solid #BFDBFE;border-radius:8px;padding:4px 10px;cursor:pointer;">보기</button>`}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">멤버 ${memberCount}명 — ${memberNames}</div>
+          <div style="display:flex;gap:6px;">
+            <button onclick="copyInviteLink('${grp.code}')" style="flex:1;padding:8px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;">🔗 초대 링크 복사</button>
+            <button onclick="leaveGroup('${grp.code}')" style="padding:8px 12px;background:#FFF1F2;color:#DC2626;border:1.5px solid #FCA5A5;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;">나가기</button>
           </div>
         </div>`;
     }
@@ -925,40 +954,46 @@ async function renderGroupSection() {
     </div>`;
 }
 
-// ── 그룹 리스트 슬라이드 삭제 ──
-const _glTouch = {};
-function glTouchStart(e, code) {
-  _glTouch[code] = { startX: e.touches[0].clientX };
+// ── 그룹명 인라인 편집 ──
+function startEditGroupName(code) {
+  document.getElementById('gname-view-' + code).style.display = 'none';
+  const editEl = document.getElementById('gname-edit-' + code);
+  editEl.style.display = 'flex';
+  const input = document.getElementById('gname-input-' + code);
+  input.focus();
+  input.select();
 }
-function glTouchMove(e, code) {
-  if (!_glTouch[code]) return;
-  const dx = e.touches[0].clientX - _glTouch[code].startX;
-  const inner = document.getElementById('gli-inner-' + code);
-  const delBtn = document.getElementById('gli-del-' + code);
-  if (!inner) return;
-  if (dx < 0) {
-    const moved = Math.min(Math.abs(dx), 80);
-    inner.style.transform = `translateX(-${moved}px)`;
-    // 슬라이드 진행률에 따라 나가기 버튼 서서히 표시
-    if (delBtn) delBtn.style.opacity = String(moved / 80);
+
+async function saveGroupName(code) {
+  const input = document.getElementById('gname-input-' + code);
+  const newName = (input.value || '').trim();
+  if (!newName) { input.focus(); return; }
+
+  // state 업데이트
+  const grp = state.groups.find(g => g.code === code);
+  if (grp) grp.name = newName;
+
+  // Firebase 업데이트
+  if (window._fb) {
+    const { db, ref, set } = window._fb;
+    try {
+      await set(ref(db, `groups/${code}/info/name`), newName);
+    } catch(e) { console.warn('그룹명 저장 실패:', e.message); }
   }
-}
-function glTouchEnd(e, code) {
-  if (!_glTouch[code]) return;
-  const inner = document.getElementById('gli-inner-' + code);
-  const delBtn = document.getElementById('gli-del-' + code);
-  if (!inner) return;
-  const dx = e.changedTouches[0].clientX - _glTouch[code].startX;
-  if (dx < -50) {
-    // 충분히 밀었으면 열린 상태 유지
-    inner.style.transform = 'translateX(-80px)';
-    if (delBtn) delBtn.style.opacity = '1';
-  } else {
-    // 복귀
-    inner.style.transform = 'translateX(0)';
-    if (delBtn) delBtn.style.opacity = '0';
+
+  // UI 복원 — 편집 모드 → 표시 모드
+  const viewEl = document.getElementById('gname-view-' + code);
+  const editEl = document.getElementById('gname-edit-' + code);
+  if (viewEl) {
+    // 그룹명 텍스트만 업데이트
+    viewEl.querySelector('span').textContent = newName;
+    viewEl.style.display = 'flex';
   }
-  delete _glTouch[code];
+  if (editEl) editEl.style.display = 'none';
+
+  // 헤더 배지, 탭도 갱신
+  updateGroupBadge();
+  renderGroupTabs();
 }
 
 // 초대코드 클릭 복사
@@ -981,6 +1016,13 @@ async function joinByCode() {
   if (!input) return;
   const code = (input.value || '').trim().toUpperCase();
   if (code.length < 6) { alert('6자리 코드를 입력해주세요.'); return; }
+  // 이미 가입된 그룹 체크 (localStorage 기반)
+  const saved = JSON.parse(localStorage.getItem('tr-groups') || '[]');
+  if (saved.includes(code) || state.groups.find(g => g.code === code)) {
+    alert('이미 가입된 그룹입니다!');
+    input.value = '';
+    return;
+  }
   await handleInvite(code);
 }
 
@@ -1026,18 +1068,27 @@ let travelMap = null, travelPins = [], openPopup = null;
 function renderGroupTabs() {
   const bar = document.getElementById('group-tab-bar');
   if (!state.groups || state.groups.length <= 1) { bar.style.display = 'none'; return; }
+
+  // select 드롭다운으로 그룹 전환
   bar.style.display = 'flex';
-  bar.innerHTML = state.groups.map(grp => {
-    const isActive = state.groupCode === grp.code;
-    return `<button onclick="switchGroup('${grp.code}')" style="
-      padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;
-      background:${isActive?'var(--primary)':'var(--bg-card)'};
-      color:${isActive?'white':'var(--text-muted)'};
-      border:1.5px solid ${isActive?'var(--primary)':'var(--border)'};
-      cursor:pointer;flex-shrink:0;white-space:nowrap;">
-      ${grp.name}
-    </button>`;
-  }).join('');
+  bar.style.alignItems = 'center';
+  bar.style.padding = '8px 14px';
+  bar.style.gap = '8px';
+
+  const options = state.groups.map(grp =>
+    `<option value="${grp.code}" ${grp.code === state.groupCode ? 'selected' : ''}>${grp.name}</option>`
+  ).join('');
+
+  bar.innerHTML = `
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">📋 여행지 보기</span>
+    <select onchange="switchGroup(this.value)" style="
+      flex:1;padding:7px 10px;
+      border:1.5px solid var(--border);border-radius:var(--r-md);
+      font-size:13px;font-weight:700;color:var(--text);
+      background:var(--bg-card);cursor:pointer;
+      appearance:auto;">
+      ${options}
+    </select>`;
 }
 
 function initTravelMap() {
