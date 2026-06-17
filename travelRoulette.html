@@ -8,7 +8,7 @@
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <!-- 카카오 JavaScript SDK (검색·역지오코딩용) -->
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1930d566fd80c7e8a7869c1e9bf73dbf&libraries=services&autoload=false"></script>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=1930d566fd80c7e8a7869c1e9bf73dbf&libraries=services"></script>
 <style>
 :root{
   --primary:#2563EB;--primary-light:#EFF6FF;--primary-dark:#1D4ED8;
@@ -826,6 +826,16 @@ function confirmNickname() {
 // ── 그룹 섹션 렌더 ──
 async function renderGroupSection() {
   const el = document.getElementById('group-section-content');
+  if (!el) return;
+  // Firebase 아직 준비 안 됐으면 기본 UI만 표시
+  if (!window._fb) {
+    el.innerHTML = `
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;line-height:1.7;">
+        그룹을 만들거나 초대코드로 참여하면 친구들과 여행 기록을 공유할 수 있어요 📍
+      </p>
+      <p style="font-size:12px;color:var(--accent);text-align:center;">⏳ 연결 중...</p>`;
+    return;
+  }
   const { db, ref, get } = window._fb;
 
   // ── 참여 중인 그룹 카드들 ──
@@ -1049,11 +1059,6 @@ function openMapModal() {
   document.body.style.overflow = 'hidden';
   const loc = state.location || { lat:37.5665, lng:126.9780 };
   state.pendingLoc = { ...loc };
-  // 카카오 SDK 로드 (autoload=false → 필요할 때 로드)
-  if (typeof kakao !== 'undefined') {
-    kakao.maps.load(() => { _kakaoGeocoder = new kakao.maps.services.Geocoder(); });
-  }
-
   setTimeout(() => {
     if (!lmap) {
       lmap = L.map('lmap-el', { center:[loc.lat,loc.lng], zoom:18, minZoom:7, maxZoom:18, zoomControl:false, scrollWheelZoom:false, doubleClickZoom:false });
@@ -1106,7 +1111,9 @@ let _kakaoGeocoder = null;
 function getKakaoGeocoder() {
   if (_kakaoGeocoder) return _kakaoGeocoder;
   try {
-    _kakaoGeocoder = new kakao.maps.services.Geocoder();
+    if (typeof kakao !== 'undefined' && kakao.maps && kakao.maps.services) {
+      _kakaoGeocoder = new kakao.maps.services.Geocoder();
+    }
   } catch(e) {}
   return _kakaoGeocoder;
 }
@@ -1160,9 +1167,13 @@ function searchAddress() {
   el.textContent = '검색 중...';
   resultsEl.style.display = 'none';
 
-  // 카카오 SDK Places 사용 (JavaScript 키 방식 — CORS 없음)
+  // 카카오 SDK Places 사용 (JavaScript 키 방식)
   let ps;
-  try { ps = new kakao.maps.services.Places(); } catch(e) {}
+  try {
+    if (typeof kakao !== 'undefined' && kakao.maps && kakao.maps.services) {
+      ps = new kakao.maps.services.Places();
+    }
+  } catch(e) {}
 
   if (ps) {
     // ① 키워드 검색 (장소명, 지하철역 등)
@@ -1652,11 +1663,13 @@ function init() {
   else { let nm=now.getMonth()+1, ny=now.getFullYear(); if(nm>11){nm=0;ny++;} state.tripDate=getFirstSat(ny,nm); }
   updateTripDateUI();
   getLocation();
-  // Firebase 준비 안됐으면 로컬 기록 먼저 표시
+  // Firebase 준비 전: 로컬 기록만 먼저 표시 (그룹 섹션은 fbReady 이벤트 후 처리)
   if (!window._fbReady) {
     state.records = JSON.parse(localStorage.getItem('tr-records')||'[]');
     renderRecords();
-    renderGroupSection();
+    // renderGroupSection은 fbReady 이후 호출 — window._fb 없으면 크래시
+    const el = document.getElementById('group-section-content');
+    if (el) el.innerHTML = '<p style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px 0;">⏳ 서버 연결 중...</p>';
   }
 }
 
