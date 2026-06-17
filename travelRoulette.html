@@ -7,7 +7,9 @@
 <!-- Leaflet CSS (여행 기록 지도 탭용) -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <!-- API 키 불필요: Leaflet+OSM(무료) + Nominatim(무료) 사용 -->
-
+<link rel="stylesheet" href="css/reset.css" type="text/css">
+<link rel="stylesheet" href="css/style.css" type="text/css">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <style>
 :root{
   --primary:#2563EB;--primary-light:#EFF6FF;--primary-dark:#1D4ED8;
@@ -22,13 +24,13 @@
 body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:80px;}
 
 /* HEADER */
-.app-header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;}
-.app-logo{font-size:20px;font-weight:700;color:var(--primary);letter-spacing:-.5px;}
+.app-header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:14px 20px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;flex-grow:1;}
+.app-logo{font-size:24px;font-weight:700;color:var(--primary);letter-spacing:-.5px;}
 .app-logo span{color:var(--accent);}
 
 /* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);display:flex;z-index:100;}
-.nav-btn{flex:1;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);transition:color .2s;}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);display:flex;z-index:100;justify-content:space-around;}
+.nav-btn{width:100%;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;font-size:10px;color:var(--text-muted);transition:color .2s;}
 .nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;}
 .nav-btn.active{color:var(--primary);font-weight:600;}
 
@@ -295,7 +297,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 <body>
 
 <header class="app-header">
-  <div class="app-logo">여행<span>룰렛</span> 🎯</div>
+  <div class="app-logo"><a href="https://megenie.github.io/dev/travelRoulette.html">여행<span>룰렛</span></a></div>
   <div style="font-size:12px;color:var(--text-muted);cursor:pointer;" onclick="openCalModal()" id="header-date"></div>
 </header>
 
@@ -328,7 +330,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
     </div>
     <button class="btn-gps-main" onclick="requestGPS()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-      현재 GPS 위치로 재설정
+      현재 위치로 설정
     </button>
   </div>
 
@@ -387,7 +389,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 <div class="page" id="page-settings">
   <div class="card-title" style="margin-bottom:16px;">⚙️ 설정 및 API 안내</div>
 
-  <div class="card">
+  <!-- <div class="card">
     <div class="card-title">API 키 입력 위치</div>
     <div style="font-size:13px;color:var(--text-muted);line-height:1.9;">
       <p>HTML 파일 상단 <code style="background:var(--bg);padding:1px 5px;border-radius:4px;font-size:12px;">API_KEYS</code> 객체에 입력하세요.</p>
@@ -402,7 +404,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <p><strong style="color:var(--text);">지도</strong> — 키 불필요</p>
       <p style="font-size:12px;color:var(--text-muted);">OpenStreetMap + Leaflet (완전 무료·상업용 가능)</p>
     </div>
-  </div>
+  </div> -->
 
   <div class="card">
     <div class="card-title">앱 정보</div>
@@ -410,7 +412,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p>
       <p>📍 GPS + 지도 드래그 + 주소 검색 출발지</p>
       <p>🚗 OSRM 실제 도로 이동시간 기반 필터링</p>
-      <p>🗺 OpenStreetMap + Leaflet (무료 지도) PIN 표시</p>
+      <p>🗺 OpenStreetMap + Leaflet</p>
       <p>🍜 카카오·네이버 지도 맛집 연동</p>
     </div>
   </div>
@@ -1381,7 +1383,7 @@ function renderCal() {
   const cb=document.getElementById('cal-confirm-btn');
   if(calSel){
     const dw=['일','월','화','수','목','금','토'][calSel.getDay()];
-    cb.textContent=`${calSel.getMonth()+1}월 ${calSel.getDate()}일 (${dw}) 확인 ✓`;
+    cb.textContent=`${calSel.getMonth()+1}월 ${calSel.getDate()}일 (${dw})확인✅`;
     cb.disabled=false;
   } else { cb.textContent='날짜 선택 후 확인'; cb.disabled=true; }
 }
