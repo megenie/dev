@@ -875,7 +875,7 @@ async function renderGroupSection() {
 
       groupCardsHTML += `
         <div class="group-list-item" id="gli-${grp.code}">
-          <div class="group-delete-bg" onclick="leaveGroup('${grp.code}')">🗑<br>나가기</div>
+          <div class="group-delete-bg" id="gli-del-${grp.code}" onclick="leaveGroup('${grp.code}')" style="opacity:0;transition:opacity .2s;">🗑<br>나가기</div>
           <div class="group-list-inner" id="gli-inner-${grp.code}"
             ontouchstart="glTouchStart(event,'${grp.code}')"
             ontouchmove="glTouchMove(event,'${grp.code}')"
@@ -884,7 +884,16 @@ async function renderGroupSection() {
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                 <div>
                   <div style="font-size:15px;font-weight:700;color:var(--text);">${grp.name}</div>
-                  <div style="font-size:11px;color:var(--text-muted);font-family:monospace;letter-spacing:2px;margin-top:1px;">${grp.code}</div>
+                  <!-- 초대코드 — 클릭하면 복사 -->
+                  <div onclick="copyCode('${grp.code}')" title="탭하여 코드 복사"
+                    style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;cursor:pointer;
+                           font-family:monospace;font-size:13px;font-weight:700;letter-spacing:3px;
+                           color:var(--primary-dark);border-bottom:1.5px dashed #93C5FD;padding-bottom:1px;">
+                    ${grp.code}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--primary);flex-shrink:0;">
+                      <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </div>
                 </div>
                 ${isActive
                   ? '<div style="font-size:11px;color:var(--primary);font-weight:700;background:white;padding:3px 8px;border-radius:10px;border:1px solid #BFDBFE;">✓ 보는 중</div>'
@@ -892,10 +901,10 @@ async function renderGroupSection() {
               </div>
               <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">멤버 ${memberCount}명 — ${memberNames}</div>
               <div style="display:flex;gap:6px;">
-                <button onclick="copyInviteLink('${grp.code}')" style="flex:1;padding:8px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;">🔗 초대 링크</button>
+                <button onclick="copyInviteLink('${grp.code}')" style="flex:1;padding:8px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;">🔗 초대 링크 복사</button>
                 <button onclick="shareInvite('${grp.code}')" style="padding:8px 12px;background:var(--bg-card);color:var(--primary);border:1.5px solid #BFDBFE;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;">📤</button>
               </div>
-              <div style="font-size:11px;color:var(--text-muted);margin-top:6px;text-align:center;">← 왼쪽으로 밀면 나가기</div>
+              <div style="font-size:10px;color:#CBD5E1;margin-top:6px;text-align:right;">← 왼쪽으로 밀어서 나가기</div>
             </div>
           </div>
         </div>`;
@@ -919,29 +928,52 @@ async function renderGroupSection() {
 // ── 그룹 리스트 슬라이드 삭제 ──
 const _glTouch = {};
 function glTouchStart(e, code) {
-  _glTouch[code] = { startX: e.touches[0].clientX, moved: false };
+  _glTouch[code] = { startX: e.touches[0].clientX };
 }
 function glTouchMove(e, code) {
   if (!_glTouch[code]) return;
   const dx = e.touches[0].clientX - _glTouch[code].startX;
   const inner = document.getElementById('gli-inner-' + code);
+  const delBtn = document.getElementById('gli-del-' + code);
   if (!inner) return;
-  if (dx < 0) { // 왼쪽으로만
-    inner.style.transform = `translateX(${Math.max(dx, -80)}px)`;
-    _glTouch[code].moved = true;
+  if (dx < 0) {
+    const moved = Math.min(Math.abs(dx), 80);
+    inner.style.transform = `translateX(-${moved}px)`;
+    // 슬라이드 진행률에 따라 나가기 버튼 서서히 표시
+    if (delBtn) delBtn.style.opacity = String(moved / 80);
   }
 }
 function glTouchEnd(e, code) {
   if (!_glTouch[code]) return;
   const inner = document.getElementById('gli-inner-' + code);
+  const delBtn = document.getElementById('gli-del-' + code);
   if (!inner) return;
   const dx = e.changedTouches[0].clientX - _glTouch[code].startX;
   if (dx < -50) {
-    inner.style.transform = 'translateX(-80px)'; // 열린 상태 유지
+    // 충분히 밀었으면 열린 상태 유지
+    inner.style.transform = 'translateX(-80px)';
+    if (delBtn) delBtn.style.opacity = '1';
   } else {
-    inner.style.transform = 'translateX(0)'; // 복귀
+    // 복귀
+    inner.style.transform = 'translateX(0)';
+    if (delBtn) delBtn.style.opacity = '0';
   }
   delete _glTouch[code];
+}
+
+// 초대코드 클릭 복사
+function copyCode(code) {
+  navigator.clipboard.writeText(code)
+    .then(() => {
+      // 복사된 코드 div 텍스트 일시적으로 변경
+      const els = document.querySelectorAll(`[onclick="copyCode('${code}')"]`);
+      els.forEach(el => {
+        const orig = el.innerHTML;
+        el.innerHTML = '<span style="color:var(--success);font-weight:700;">✓ 복사됨!</span>';
+        setTimeout(() => { el.innerHTML = orig; }, 1500);
+      });
+    })
+    .catch(() => prompt('코드를 복사하세요:', code));
 }
 
 async function joinByCode() {
