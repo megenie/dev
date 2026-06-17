@@ -412,7 +412,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p>
       <p>📍 GPS + 지도 드래그 + 주소 검색 출발지</p>
       <p>🚗 OSRM 실제 도로 이동시간 기반 필터링</p>
-      <p>🗺 OpenStreetMap + Leaflet</p>
+      <p>🗺️ OpenStreetMap + Leaflet</p>
       <p>🍜 카카오·네이버 지도 맛집 연동</p>
     </div>
   </div>
@@ -461,8 +461,8 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
     <div class="section-label">🍜 맛집 검색</div>
     <div id="food-cards-area"></div>
     <div class="map-btns">
-      <button class="result-map-btn kakao" onclick="openKakaoMap()">🗺 카카오맵</button>
-      <button class="result-map-btn naver" onclick="openNaverMap()">🗺 네이버지도</button>
+      <button class="result-map-btn kakao" onclick="openKakaoMap()" style="background-color: #FAE100; border:0px;">카카오맵</button>
+      <button class="result-map-btn naver" onclick="openNaverMap()" style="background-color: #2Db400; border:0px; color:#fefefe">네이버지도</button>
     </div>
     <div class="result-actions">
       <button class="btn-save" onclick="openMemoModal()">📝 기록으로 저장</button>
@@ -496,7 +496,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <button class="btn-modal-gps" onclick="gpsInModal()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>GPS
       </button>
-      <button class="btn-confirm-loc" onclick="confirmLocation()">이 위치로 출발 ✓</button>
+      <button class="btn-confirm-loc" onclick="confirmLocation()">이 위치로 출발 ✅</button>
     </div>
   </div>
 </div>
