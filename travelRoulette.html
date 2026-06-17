@@ -256,10 +256,17 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 .profile-modal-box{background:white;border-radius:var(--r-xl);padding:28px 24px;width:100%;max-width:360px;}
 .profile-modal-title{font-size:20px;font-weight:800;margin-bottom:6px;}
 .profile-modal-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.6;}
-.pin-input{letter-spacing:6px;font-size:20px;font-weight:700;font-family:monospace;text-align:center;}
+.pin-input{font-size:14px;font-family:pretendard;text-align:center;}
 .tab-row{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px;}
 .tab-btn{flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:700;color:var(--text-muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-2px;}
 .tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
+
+/* PIN 입력 눈 토글 */
+.pin-wrap{position:relative;display:flex;align-items:center;margin-bottom:12px;}
+.pin-wrap .modal-input{margin-bottom:0;flex:1;padding-right:44px;}
+.pin-eye{position:absolute;right:12px;background:none;border:none;cursor:pointer;
+  color:var(--text-muted);padding:4px;line-height:0;transition:color .15s;}
+.pin-eye:hover{color:var(--primary);}
 </style>
 </head>
 <body>
@@ -358,7 +365,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 
   <!-- 내 여행지 섹션 -->
   <div class="card" id="my-records-card">
-    <div class="card-title">🗺 내 여행지</div>
+    <div class="card-title">👍 내 여행지</div>
     <div id="my-records-section"></div>
   </div>
 
@@ -571,13 +578,29 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <input type="text" id="p-new-nick" class="modal-input" placeholder="예: 지니, 여행왕민지" maxlength="10"
         onkeydown="if(event.key==='Enter')document.getElementById('p-new-pin').focus()">
       <label class="profile-input-label">PIN 6자리</label>
-      <input type="password" inputmode="numeric" id="p-new-pin" class="modal-input pin-input"
-        placeholder="●●●●●●" maxlength="6"
+      <div class="pin-wrap"><input type="password" inputmode="numeric" id="p-new-pin" class="modal-input pin-input" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+        placeholder="숫자 6자리를 입력해주세요" maxlength="6"
         onkeydown="if(event.key==='Enter')submitNewProfile()">
+      <button type="button" class="pin-eye" onclick="togglePin('p-new-pin',this)" tabindex="-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+    </div>
       <label class="profile-input-label">PIN 확인</label>
-      <input type="password" inputmode="numeric" id="p-new-pin2" class="modal-input pin-input"
-        placeholder="●●●●●●" maxlength="6"
+      <div class="pin-wrap"><input type="password" inputmode="numeric" id="p-new-pin2" class="modal-input pin-input" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+        placeholder="숫자 6자리를 입력해주세요" maxlength="6"
         onkeydown="if(event.key==='Enter')submitNewProfile()">
+      <button type="button" class="pin-eye" onclick="togglePin('p-new-pin2',this)" tabindex="-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+    </div>
       <button onclick="submitNewProfile()" class="btn-modal-ok" style="width:100%;margin-top:4px;">
         프로필 만들기 🎉
       </button>
@@ -590,9 +613,17 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <input type="text" id="p-restore-nick" class="modal-input" placeholder="기존 닉네임 입력" maxlength="10"
         onkeydown="if(event.key==='Enter')document.getElementById('p-restore-pin').focus()">
       <label class="profile-input-label">PIN 6자리</label>
-      <input type="password" inputmode="numeric" id="p-restore-pin" class="modal-input pin-input"
-        placeholder="●●●●●●" maxlength="6"
+      <div class="pin-wrap"><input type="password" inputmode="numeric" id="p-restore-pin" class="modal-input pin-input" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+        placeholder="숫자 6자리를 입력해주세요" maxlength="6"
         onkeydown="if(event.key==='Enter')submitRestoreProfile()">
+      <button type="button" class="pin-eye" onclick="togglePin('p-restore-pin',this)" tabindex="-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+    </div>
       <button onclick="submitRestoreProfile()" class="btn-modal-ok" style="width:100%;margin-top:4px;">
         복원하기 🔑
       </button>
@@ -606,13 +637,29 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
     <div class="profile-modal-title">프로필 수정</div>
     <div class="profile-modal-sub">PIN을 입력해야 수정할 수 있어요.</div>
     <label class="profile-input-label">현재 PIN 확인</label>
-    <input type="password" inputmode="numeric" id="pe-current-pin" class="modal-input pin-input"
-      placeholder="●●●●●●" maxlength="6">
+    <div class="pin-wrap"><input type="password" inputmode="numeric" id="pe-current-pin" class="modal-input pin-input" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+      placeholder="숫자 6자리를 입력해주세요" maxlength="6">
+      <button type="button" class="pin-eye" onclick="togglePin('pe-current-pin',this)" tabindex="-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+    </div>
     <label class="profile-input-label">새 닉네임</label>
     <input type="text" id="pe-new-nick" class="modal-input" placeholder="새 닉네임" maxlength="10">
     <label class="profile-input-label">새 PIN (변경하지 않으려면 비워두세요)</label>
-    <input type="password" inputmode="numeric" id="pe-new-pin" class="modal-input pin-input"
-      placeholder="●●●●●●" maxlength="6">
+    <div class="pin-wrap"><input type="password" inputmode="numeric" id="pe-new-pin" class="modal-input pin-input" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+      placeholder="숫자 6자리를 입력해주세요" maxlength="6">
+      <button type="button" class="pin-eye" onclick="togglePin('pe-new-pin',this)" tabindex="-1">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </svg>
+      </button>
+    </div>
     <div style="display:flex;gap:10px;margin-top:4px;">
       <button onclick="submitEditProfile()" class="btn-modal-ok" style="flex:1;">저장</button>
       <button onclick="document.getElementById('profile-edit-modal').classList.remove('show')" class="btn-modal-cancel">취소</button>
@@ -719,6 +766,25 @@ function makeInviteLink(code) {
   return `${location.origin}${location.pathname}?group=${code}`;
 }
 
+
+// PIN 입력 눈 토글
+function togglePin(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const isHidden = inp.type === 'password';
+  inp.type = isHidden ? 'text' : 'password';
+  // 눈 열림/닫힘 SVG 교체
+  btn.innerHTML = isHidden
+    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+         <circle cx="12" cy="12" r="3"/>
+       </svg>`
+    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+         <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+         <line x1="1" y1="1" x2="23" y2="23"/>
+       </svg>`;
+}
 // Firebase 준비 후 초기화
 document.addEventListener('fbReady', () => {
   state.memberId = getMemberId();
@@ -1013,6 +1079,15 @@ async function handleInvite(code) {
     history.replaceState({}, '', location.pathname);
     return;
   }
+  // 프로필(닉네임+PIN) 미설정 시 → 먼저 설정하도록 안내
+  if (!state.nickname || !state.userPin) {
+    state._pendingInviteCode = code;
+    history.replaceState({}, '', location.pathname);
+    // 프로필 설정 모달 표시 (복원 탭도 보이도록)
+    showProfileModal();
+    // 설정 완료 후 자동으로 그룹 참여 처리됨 (_pendingInviteCode)
+    return;
+  }
   const { db, ref, get } = window._fb;
   try {
     const snap = await get(ref(db, `groups/${code}/info`));
@@ -1152,7 +1227,7 @@ let _nicknameCallback = null;
 // 닉네임 필요 시 → 프로필 모달로 안내
 function showNicknameModal(subText, callback) {
   _nicknameCallback = callback;
-  if (!state.nickname) {
+  if (!state.nickname || !state.userPin) {
     // 프로필 미설정 → 프로필 모달
     showProfileModal();
     return;
@@ -1237,7 +1312,7 @@ async function renderGroupSection() {
               <!-- 초대코드 — 클릭하면 복사 -->
               <div onclick="copyCode('${grp.code}')" title="탭하여 코드 복사"
                 style="display:inline-flex;align-items:center;gap:4px;margin-top:3px;cursor:pointer;
-                       font-family:monospace;font-size:13px;font-weight:700;letter-spacing:3px;
+                       font-family:monospace;font-size:13px;font-weight:700;
                        color:var(--primary-dark);border-bottom:1.5px dashed #93C5FD;padding-bottom:1px;">
                 ${grp.code}
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:var(--primary);flex-shrink:0;">
@@ -1264,7 +1339,7 @@ async function renderGroupSection() {
       <button class="btn-group-action btn-new-group" style="margin-bottom:8px;" onclick="createGroup()">✨ 새 그룹 만들기</button>
       <div style="display:flex;gap:8px;">
         <input type="text" id="join-code-input" class="modal-input" placeholder="초대코드 6자리 입력"
-          maxlength="6" style="flex:1;margin:0;text-transform:uppercase;letter-spacing:3px;font-family:monospace;font-size:16px;"
+          maxlength="6" style="flex:1;margin:0;text-transform:uppercase;font-family:monospace;font-size:16px;"
           onkeydown="if(event.key==='Enter')joinByCode()">
         <button onclick="joinByCode()" style="padding:10px 16px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:14px;font-weight:700;cursor:pointer;">참여</button>
       </div>
@@ -1402,7 +1477,7 @@ function renderGroupTabs() {
   ).join('');
 
   bar.innerHTML = `
-    <span style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">📋기록 선택</span>
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">📋 보기</span>
     <select onchange="switchView(this.value)" style="
       flex:1;padding:7px 10px;
       border:1.5px solid var(--border);border-radius:var(--r-md);
@@ -1959,8 +2034,8 @@ function pickEmoji(el) {
 }
 
 async function saveRecord() {
-  if (!state.nickname) {
-    alert('여행 기록을 저장하려면 프로필(닉네임)을 먼저 설정해주세요!');
+  if (!state.nickname || !state.userPin) {
+    alert('여행 기록을 저장하려면 닉네임과 PIN을 먼저 설정해야 해요!');
     closeMemoModal(); closeResult();
     goPage('settings', document.querySelectorAll('.nav-btn')[2]);
     setTimeout(() => showProfileModal(), 300);
