@@ -4,12 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>여행 룰렛 🎯</title>
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="icon" href="favicon.ico">
 <!-- Leaflet CSS (여행 기록 지도 탭용) -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <!-- API 키 불필요: Leaflet+OSM(무료) + Nominatim(무료) 사용 -->
 <link rel="stylesheet" href="css/reset.css" type="text/css">
 <link rel="stylesheet" href="css/style.css" type="text/css">
-<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <style>
 :root{
   --primary:#2563EB;--primary-light:#EFF6FF;--primary-dark:#1D4ED8;
@@ -412,7 +413,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p>
       <p>📍 GPS + 지도 드래그 + 주소 검색 출발지</p>
       <p>🚗 OSRM 실제 도로 이동시간 기반 필터링</p>
-      <p>🗺️ OpenStreetMap + Leaflet</p>
+      <p>🗺 OpenStreetMap + Leaflet</p>
       <p>🍜 카카오·네이버 지도 맛집 연동</p>
     </div>
   </div>
@@ -540,6 +541,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
       <div class="emoji-opt" onclick="pickEmoji(this)">🍜</div>
       <div class="emoji-opt" onclick="pickEmoji(this)">🎭</div>
       <div class="emoji-opt" onclick="pickEmoji(this)">🎣</div>
+      <div class="emoji-opt" onclick="pickEmoji(this)">🚂</div>
     </div>
     <textarea class="modal-textarea" id="memo-text" placeholder="여행 메모 (방문날짜, 느낌, 맛집 등)"></textarea>
     <div class="modal-actions">
@@ -821,8 +823,8 @@ function openMapModal() {
         const div = L.DomUtil.create('div', '');
         div.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:4px;margin:0 8px 8px 0;">
-            <button onclick="pinZoom(1)"  style="width:36px;height:36px;border:1.5px solid #ccc;border-radius:8px;background:white;font-size:20px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);">+</button>
-            <button onclick="pinZoom(-1)" style="width:36px;height:36px;border:1.5px solid #ccc;border-radius:8px;background:white;font-size:20px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);">−</button>
+            <button onclick="pinZoom(1)"  style="width:32px;height:32px;border:1.5px solid #ccc;border-radius:8px;background:white;font-size:20px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);">+</button>
+            <button onclick="pinZoom(-1)" style="width:32px;height:32px;border:1.5px solid #ccc;border-radius:8px;background:white;font-size:20px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15);">−</button>
           </div>`;
         L.DomEvent.disableClickPropagation(div);
         return div;
