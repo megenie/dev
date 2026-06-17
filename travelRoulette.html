@@ -113,7 +113,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 
 #travel-map-wrap{width:100%;display:flex;flex-direction:column;height:calc(100vh - 130px);}
 #travel-map{flex:1;min-height:0;z-index:1;}
-.map-stats-bar{position:absolute;top:70px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:12px;font-size:12px;font-weight:600;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:10;white-space:nowrap;pointer-events:none;}
+.map-stats-bar{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.95);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:20px;padding:6px 14px;display:flex;align-items:center;gap:12px;font-size:12px;font-weight:600;color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:10;white-space:nowrap;pointer-events:none;}
 .map-stats-dot{width:8px;height:8px;border-radius:50%;background:#F97316;flex-shrink:0;}
 .record-panel{background:var(--bg-card);border-top:1px solid var(--border);flex-shrink:0;overflow-y:auto;max-height:260px;}
 .record-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;position:sticky;top:0;background:var(--bg-card);border-bottom:1px solid var(--border);z-index:2;}
@@ -241,6 +241,25 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 .group-created-box{background:var(--primary-light);border:2px solid var(--primary);border-radius:var(--r-md);padding:20px;text-align:center;margin-bottom:14px;}
 .group-created-code{font-size:32px;font-weight:900;letter-spacing:8px;color:var(--primary-dark);font-family:monospace;margin:10px 0;}
 .group-created-name{font-size:14px;font-weight:600;color:var(--primary);margin-bottom:4px;}
+
+/* ─── 프로필 ─── */
+.profile-card{background:linear-gradient(135deg,var(--primary) 0%,#1D4ED8 100%);border-radius:var(--r-lg);padding:20px;margin-bottom:16px;color:white;position:relative;}
+.profile-avatar{width:52px;height:52px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:white;margin-bottom:10px;border:2.5px solid rgba(255,255,255,.4);}
+.profile-nickname{font-size:18px;font-weight:800;margin-bottom:2px;}
+.profile-pin-row{font-size:12px;opacity:.8;display:flex;align-items:center;gap:6px;}
+.profile-edit-btn{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);border:none;border-radius:8px;padding:6px 10px;color:white;font-size:12px;font-weight:700;cursor:pointer;}
+.profile-setup-box{background:var(--bg-card);border:2px dashed var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:16px;text-align:center;}
+.profile-input-label{font-size:12px;font-weight:600;color:var(--text-muted);text-align:left;margin-bottom:4px;display:block;}
+/* 프로필 설정/복원 모달 */
+.profile-modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:950;align-items:center;justify-content:center;padding:20px;}
+.profile-modal.show{display:flex;}
+.profile-modal-box{background:white;border-radius:var(--r-xl);padding:28px 24px;width:100%;max-width:360px;}
+.profile-modal-title{font-size:20px;font-weight:800;margin-bottom:6px;}
+.profile-modal-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.6;}
+.pin-input{letter-spacing:6px;font-size:20px;font-weight:700;font-family:monospace;text-align:center;}
+.tab-row{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px;}
+.tab-btn{flex:1;padding:10px;border:none;background:none;font-size:13px;font-weight:700;color:var(--text-muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-2px;}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);}
 </style>
 </head>
 <body>
@@ -334,6 +353,15 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
 <div class="page" id="page-settings">
   <div class="card-title" style="margin-bottom:16px;">⚙️ 설정</div>
 
+  <!-- 프로필 섹션 -->
+  <div id="profile-section"></div>
+
+  <!-- 내 여행지 섹션 -->
+  <div class="card" id="my-records-card">
+    <div class="card-title">🗺 내 여행지</div>
+    <div id="my-records-section"></div>
+  </div>
+
   <!-- 그룹 섹션 -->
   <div class="card" id="group-card">
     <div class="card-title">👥 친구와 여행지 공유</div>
@@ -343,7 +371,7 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
   <div class="card">
     <div class="card-title">앱 정보</div>
     <div style="font-size:13px;color:var(--text-muted);line-height:1.9;">
-      <!-- <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p> -->
+      <p>📅 매월 첫째 주 토요일 기준 날짜 추천</p>
       <!-- <p>📍 GPS + 지도 드래그 + 주소 검색 출발지</p> -->
       <p>🚗 OSRM 실제 도로 이동시간 기반 필터링</p>
       <p>🗺 OpenStreetMap + Leaflet</p>
@@ -524,6 +552,74 @@ body{font-family:-apple-system,'Pretendard','Noto Sans KR',sans-serif;background
   </div>
 </div>
 
+
+<!-- PROFILE MODAL (최초 설정 / 복원) -->
+<div class="profile-modal" id="profile-modal">
+  <div class="profile-modal-box">
+    <div class="profile-modal-title" id="pmodal-title">👋 처음 오셨군요!</div>
+    <div class="profile-modal-sub" id="pmodal-sub">닉네임과 PIN 6자리를 설정하면<br>어느 기기에서든 같은 계정으로 사용할 수 있어요.<br><span style="font-size:11px;color:#94A3B8;">이미 계정이 있다면 → PIN으로 로그인 탭</span></div>
+
+    <!-- 탭: 신규 / 기기 복원 -->
+    <div class="tab-row" id="pmodal-tabs">
+      <button class="tab-btn active" onclick="switchProfileTab('new')">신규 설정</button>
+      <button class="tab-btn" onclick="switchProfileTab('restore')">PIN으로 로그인</button>
+    </div>
+
+    <!-- 신규 설정 -->
+    <div id="ptab-new">
+      <label class="profile-input-label">닉네임 (다른 사람과 중복 불가)</label>
+      <input type="text" id="p-new-nick" class="modal-input" placeholder="예: 지니, 여행왕민지" maxlength="10"
+        onkeydown="if(event.key==='Enter')document.getElementById('p-new-pin').focus()">
+      <label class="profile-input-label">PIN 6자리</label>
+      <input type="password" inputmode="numeric" id="p-new-pin" class="modal-input pin-input"
+        placeholder="●●●●●●" maxlength="6"
+        onkeydown="if(event.key==='Enter')submitNewProfile()">
+      <label class="profile-input-label">PIN 확인</label>
+      <input type="password" inputmode="numeric" id="p-new-pin2" class="modal-input pin-input"
+        placeholder="●●●●●●" maxlength="6"
+        onkeydown="if(event.key==='Enter')submitNewProfile()">
+      <button onclick="submitNewProfile()" class="btn-modal-ok" style="width:100%;margin-top:4px;">
+        프로필 만들기 🎉
+      </button>
+    </div>
+
+    <!-- 기기 복원 -->
+    <div id="ptab-restore" style="display:none;">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">기존 계정의 닉네임과 PIN을 입력하면<br>이 기기에서도 같은 계정으로 사용할 수 있어요.</p>
+      <label class="profile-input-label">닉네임</label>
+      <input type="text" id="p-restore-nick" class="modal-input" placeholder="기존 닉네임 입력" maxlength="10"
+        onkeydown="if(event.key==='Enter')document.getElementById('p-restore-pin').focus()">
+      <label class="profile-input-label">PIN 6자리</label>
+      <input type="password" inputmode="numeric" id="p-restore-pin" class="modal-input pin-input"
+        placeholder="●●●●●●" maxlength="6"
+        onkeydown="if(event.key==='Enter')submitRestoreProfile()">
+      <button onclick="submitRestoreProfile()" class="btn-modal-ok" style="width:100%;margin-top:4px;">
+        복원하기 🔑
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE EDIT MODAL -->
+<div class="profile-modal" id="profile-edit-modal">
+  <div class="profile-modal-box">
+    <div class="profile-modal-title">프로필 수정</div>
+    <div class="profile-modal-sub">PIN을 입력해야 수정할 수 있어요.</div>
+    <label class="profile-input-label">현재 PIN 확인</label>
+    <input type="password" inputmode="numeric" id="pe-current-pin" class="modal-input pin-input"
+      placeholder="●●●●●●" maxlength="6">
+    <label class="profile-input-label">새 닉네임</label>
+    <input type="text" id="pe-new-nick" class="modal-input" placeholder="새 닉네임" maxlength="10">
+    <label class="profile-input-label">새 PIN (변경하지 않으려면 비워두세요)</label>
+    <input type="password" inputmode="numeric" id="pe-new-pin" class="modal-input pin-input"
+      placeholder="●●●●●●" maxlength="6">
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button onclick="submitEditProfile()" class="btn-modal-ok" style="flex:1;">저장</button>
+      <button onclick="document.getElementById('profile-edit-modal').classList.remove('show')" class="btn-modal-cancel">취소</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDK (module) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
@@ -583,12 +679,14 @@ const state = {
   tripDate: null,
   eligibleDistricts: [],
   currentResult: null,
-  records: [],
+  records: [],        // 그룹 기록 (Firebase) 또는 로컬 기록 (그룹 없을 때)
+  localRecords: [],   // 개인 기록 (localStorage, 항상 유지)
   selectedEmoji: '🏔',
   pendingLoc: null,
   pendingAddr: null,
   // 그룹
   groupCode: null,       // 현재 보고 있는 그룹코드
+  viewMode: 'personal',  // 'personal' | 그룹코드
   groups: [],            // 참여 중인 그룹 목록 [{code, name, createdBy}]
   nickname: null,
   memberId: null,
@@ -625,21 +723,234 @@ function makeInviteLink(code) {
 document.addEventListener('fbReady', () => {
   state.memberId = getMemberId();
   state.nickname = localStorage.getItem('tr-nickname') || null;
-  // 다중 그룹 복원: tr-groups = ["ABC123","DEF456"]
+  state.userPin    = localStorage.getItem('tr-pin')      || null;
+  // 개인 기록은 항상 먼저 로드
+  state.localRecords = JSON.parse(localStorage.getItem('tr-records') || '[]');
+
+  // 프로필 미설정 시 → 설정 모달 표시 (URL 초대코드가 있어도 프로필 먼저)
+  if (!state.nickname || !state.userPin) {
+    showProfileModal();
+    // 초대코드는 프로필 완료 후 처리하도록 저장
+    const urlCode = getCodeFromURL();
+    if (urlCode) state._pendingInviteCode = urlCode;
+    return;
+  }
+
   const savedGroups = JSON.parse(localStorage.getItem('tr-groups') || '[]');
   const urlCode = getCodeFromURL();
 
   if (urlCode && !savedGroups.includes(urlCode)) {
     handleInvite(urlCode);
   } else if (savedGroups.length > 0) {
-    // 첫 번째 그룹 활성화, 나머지도 구독
     restoreGroups(savedGroups);
   } else {
-    state.records = JSON.parse(localStorage.getItem('tr-records') || '[]');
+    state.localRecords = JSON.parse(localStorage.getItem('tr-records') || '[]');
+    state.records = state.localRecords;
     renderGroupSection();
     renderRecords();
   }
 });
+
+// ============================================================
+//  프로필 (닉네임 + PIN)
+// ============================================================
+function showProfileModal(opts = {}) {
+  const modal = document.getElementById('profile-modal');
+  if (opts.hideRestore) document.getElementById('pmodal-tabs').style.display = 'none';
+  modal.classList.add('show');
+  setTimeout(() => document.getElementById('p-new-nick').focus(), 100);
+}
+
+function switchProfileTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('ptab-new').style.display = tab === 'new' ? 'block' : 'none';
+  document.getElementById('ptab-restore').style.display = tab === 'restore' ? 'block' : 'none';
+  event.target.classList.add('active');
+}
+
+async function submitNewProfile() {
+  const nick = document.getElementById('p-new-nick').value.trim();
+  const pin  = document.getElementById('p-new-pin').value.trim();
+  const pin2 = document.getElementById('p-new-pin2').value.trim();
+
+  if (!nick) { alert('닉네임을 입력해주세요.'); return; }
+  if (pin.length !== 6 || !/^\d+$/.test(pin)) { alert('PIN은 숫자 6자리여야 해요.'); return; }
+  if (pin !== pin2) { alert('PIN이 일치하지 않아요.'); return; }
+
+  if (!window._fb) { alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+  const { db, ref, get, set } = window._fb;
+
+  // 닉네임 중복 확인
+  try {
+    const snap = await get(ref(db, `users/${nick}`));
+    if (snap.exists()) {
+      alert('이미 사용하고 있는 닉네임입니다.');
+      return;
+    }
+  } catch(e) { alert('네트워크 오류가 발생했습니다.'); return; }
+
+  // Firebase에 프로필 저장
+  try {
+    await set(ref(db, `users/${nick}`), {
+      memberId: state.memberId,
+      pin,
+      createdAt: Date.now()
+    });
+  } catch(e) { alert('프로필 저장에 실패했습니다.\nFirebase 규칙을 확인해주세요.'); return; }
+
+  // 로컬 저장
+  state.nickname = nick;
+  state.userPin  = pin;
+  localStorage.setItem('tr-nickname', nick);
+  localStorage.setItem('tr-pin', pin);
+
+  document.getElementById('profile-modal').classList.remove('show');
+  renderProfileSection();
+  renderGroupSection();
+
+  // 대기 중인 초대코드 처리
+  if (state._pendingInviteCode) {
+    const code = state._pendingInviteCode;
+    state._pendingInviteCode = null;
+    handleInvite(code);
+  }
+}
+
+async function submitRestoreProfile() {
+  const nick = document.getElementById('p-restore-nick').value.trim();
+  const pin  = document.getElementById('p-restore-pin').value.trim();
+  if (!nick || !pin) { alert('닉네임과 PIN을 입력해주세요.'); return; }
+
+  if (!window._fb) { alert('서버 연결 중입니다.'); return; }
+  const { db, ref, get } = window._fb;
+
+  try {
+    const snap = await get(ref(db, `users/${nick}`));
+    if (!snap.exists()) { alert('존재하지 않는 닉네임입니다.'); return; }
+    const data = snap.val();
+    if (data.pin !== pin) { alert('PIN이 올바르지 않아요.'); return; }
+
+    // 복원 성공 — memberId 교체
+    state.nickname = nick;
+    state.userPin  = pin;
+    state.memberId = data.memberId;
+    localStorage.setItem('tr-nickname', nick);
+    localStorage.setItem('tr-pin', pin);
+    localStorage.setItem('tr-member-id', data.memberId);
+
+    document.getElementById('profile-modal').classList.remove('show');
+    renderProfileSection();
+
+    // 그룹 복원
+    const savedGroups = JSON.parse(localStorage.getItem('tr-groups') || '[]');
+    if (savedGroups.length > 0) restoreGroups(savedGroups);
+    else { renderGroupSection(); renderRecords(); }
+
+  } catch(e) { alert('복원 중 오류가 발생했습니다.'); }
+}
+
+async function submitEditProfile() {
+  const currentPin = document.getElementById('pe-current-pin').value.trim();
+  const newNick    = document.getElementById('pe-new-nick').value.trim();
+  const newPin     = document.getElementById('pe-new-pin').value.trim();
+
+  if (currentPin !== state.userPin) { alert('현재 PIN이 올바르지 않아요.'); return; }
+  if (!newNick) { alert('닉네임을 입력해주세요.'); return; }
+  if (newPin && (newPin.length !== 6 || !/^\d+$/.test(newPin))) { alert('새 PIN은 숫자 6자리여야 해요.'); return; }
+
+  const { db, ref, get, set, remove } = window._fb;
+  const finalPin = newPin || state.userPin;
+
+  // 닉네임 변경 시 중복 확인
+  if (newNick !== state.nickname) {
+    const snap = await get(ref(db, `users/${newNick}`));
+    if (snap.exists()) { alert('이미 사용하고 있는 닉네임입니다.'); return; }
+    // 기존 닉네임 노드 삭제 후 새 닉네임으로 저장
+    await remove(ref(db, `users/${state.nickname}`));
+  }
+
+  await set(ref(db, `users/${newNick}`), {
+    memberId: state.memberId, pin: finalPin, createdAt: Date.now()
+  });
+
+  // 그룹 멤버 노드에서 닉네임도 업데이트 (모든 참여 중인 그룹에 반영)
+  const oldNick = state.nickname;
+  if (newNick !== oldNick) {
+    for (const grp of state.groups) {
+      try {
+        await set(ref(db, `groups/${grp.code}/members/${state.memberId}`), newNick);
+      } catch(e) {}
+    }
+  }
+
+  state.nickname = newNick;
+  state.userPin  = finalPin;
+  localStorage.setItem('tr-nickname', newNick);
+  localStorage.setItem('tr-pin', finalPin);
+
+  document.getElementById('profile-edit-modal').classList.remove('show');
+  renderProfileSection();
+  renderGroupSection();
+  updateGroupBadge();
+}
+
+
+// ── 설정 탭 내 여행지 섹션 ──
+function renderMyRecordsSection() {
+  const el = document.getElementById('my-records-section');
+  if (!el) return;
+  const recs = state.localRecords || [];
+  if (!recs.length) {
+    el.innerHTML = `<div style="text-align:center;padding:16px 0;color:var(--text-muted);font-size:13px;">
+      아직 개인 여행 기록이 없어요.<br>여행지를 뽑고 저장해보세요! 🗺
+    </div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;">${recs.length}개의 여행지</div>
+    ${recs.slice(0, 5).map(r => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+        <div style="width:36px;height:36px;background:var(--primary-light);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${r.emoji}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;">${r.district}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${r.region} · ${r.date}</div>
+        </div>
+      </div>`).join('')}
+    ${recs.length > 5 ? `<div style="text-align:center;font-size:12px;color:var(--primary);padding-top:8px;font-weight:600;">+ ${recs.length - 5}개 더 있어요 → 여행지 기록 탭에서 보기</div>` : ''}`;
+}
+function renderProfileSection() {
+  const el = document.getElementById('profile-section');
+  if (!el) return;
+  if (!state.nickname) {
+    el.innerHTML = `
+      <div class="profile-setup-box">
+        <div style="font-size:24px;margin-bottom:8px;">👤</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px;">프로필을 설정해주세요</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">닉네임과 PIN을 등록하면<br>여행지 기록과 그룹을 사용할 수 있어요</div>
+        <button onclick="showProfileModal()" style="width:100%;padding:12px;background:var(--primary);color:white;border:none;border-radius:var(--r-md);font-size:14px;font-weight:700;cursor:pointer;">프로필 설정하기</button>
+      </div>`;
+    return;
+  }
+  const initial = state.nickname.charAt(0).toUpperCase();
+  el.innerHTML = `
+    <div class="profile-card">
+      <button class="profile-edit-btn" onclick="openProfileEdit()">✏️ 수정</button>
+      <div class="profile-avatar">${initial}</div>
+      <div class="profile-nickname">${state.nickname}</div>
+      <div class="profile-pin-row">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        PIN ●●●●●●
+      </div>
+    </div>`;
+}
+
+function openProfileEdit() {
+  document.getElementById('pe-current-pin').value = '';
+  document.getElementById('pe-new-nick').value = state.nickname || '';
+  document.getElementById('pe-new-pin').value = '';
+  document.getElementById('profile-edit-modal').classList.add('show');
+  setTimeout(() => document.getElementById('pe-current-pin').focus(), 100);
+}
 
 // 저장된 모든 그룹 복원
 async function restoreGroups(codes) {
@@ -689,6 +1000,7 @@ async function switchGroup(code) {
     renderRecords();
     refreshTravelPins();
   });
+  state.viewMode = code;  // 그룹으로 뷰 전환
   renderGroupSection();
   updateGroupBadge();
   renderGroupTabs();
@@ -707,7 +1019,8 @@ async function handleInvite(code) {
     if (!snap.exists()) {
       alert('유효하지 않은 초대코드입니다.');
       history.replaceState({}, '', location.pathname);
-      state.records = JSON.parse(localStorage.getItem('tr-records') || '[]');
+      state.localRecords = JSON.parse(localStorage.getItem('tr-records') || '[]');
+      state.records = state.localRecords;
       renderGroupSection(); renderRecords();
       return;
     }
@@ -825,7 +1138,8 @@ async function leaveGroup(code) {
     if (state.groups.length > 0) {
       await switchGroup(state.groups[0].code);
     } else {
-      state.records = JSON.parse(localStorage.getItem('tr-records') || '[]');
+      state.localRecords = JSON.parse(localStorage.getItem('tr-records') || '[]');
+      state.records = state.localRecords;
       renderGroupSection(); renderRecords(); refreshTravelPins(); updateGroupBadge(); renderGroupTabs();
     }
   } else {
@@ -835,12 +1149,16 @@ async function leaveGroup(code) {
 
 // ── 닉네임 모달 ──
 let _nicknameCallback = null;
+// 닉네임 필요 시 → 프로필 모달로 안내
 function showNicknameModal(subText, callback) {
   _nicknameCallback = callback;
-  document.getElementById('nickname-sub-text').innerHTML = subText;
-  document.getElementById('nickname-input').value = state.nickname || '';
-  document.getElementById('nickname-modal').classList.add('show');
-  setTimeout(() => document.getElementById('nickname-input').focus(), 100);
+  if (!state.nickname) {
+    // 프로필 미설정 → 프로필 모달
+    showProfileModal();
+    return;
+  }
+  // 닉네임 있으면 바로 callback
+  if (_nicknameCallback) { _nicknameCallback(); _nicknameCallback = null; }
 }
 function confirmNickname() {
   const name = document.getElementById('nickname-input').value.trim();
@@ -1067,28 +1385,45 @@ let travelMap = null, travelPins = [], openPopup = null;
 
 function renderGroupTabs() {
   const bar = document.getElementById('group-tab-bar');
-  if (!state.groups || state.groups.length <= 1) { bar.style.display = 'none'; return; }
+  const hasPersonal = (state.localRecords || []).length > 0;
+  const hasGroups   = state.groups && state.groups.length > 0;
 
-  // select 드롭다운으로 그룹 전환
+  // 개인 기록도 없고 그룹도 없으면 숨김
+  if (!hasPersonal && !hasGroups) { bar.style.display = 'none'; return; }
+
   bar.style.display = 'flex';
   bar.style.alignItems = 'center';
   bar.style.padding = '8px 14px';
   bar.style.gap = '8px';
 
-  const options = state.groups.map(grp =>
-    `<option value="${grp.code}" ${grp.code === state.groupCode ? 'selected' : ''}>${grp.name}</option>`
+  const personalOpt = `<option value="personal" ${state.viewMode === 'personal' ? 'selected' : ''}>👤 내 기록</option>`;
+  const groupOpts = (state.groups || []).map(grp =>
+    `<option value="${grp.code}" ${state.viewMode === grp.code ? 'selected' : ''}>👥 ${grp.name}</option>`
   ).join('');
 
   bar.innerHTML = `
-    <span style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">📋 여행지 보기</span>
-    <select onchange="switchGroup(this.value)" style="
+    <span style="font-size:12px;font-weight:600;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">📋기록 선택</span>
+    <select onchange="switchView(this.value)" style="
       flex:1;padding:7px 10px;
       border:1.5px solid var(--border);border-radius:var(--r-md);
       font-size:13px;font-weight:700;color:var(--text);
-      background:var(--bg-card);cursor:pointer;
-      appearance:auto;">
-      ${options}
+      background:var(--bg-card);cursor:pointer;appearance:auto;">
+      ${personalOpt}
+      ${groupOpts}
     </select>`;
+}
+
+// 뷰 전환 함수 (내 기록 or 그룹)
+function switchView(value) {
+  if (value === 'personal') {
+    state.viewMode = 'personal';
+    state.records  = state.localRecords || [];
+    renderRecords();
+    refreshTravelPins();
+  } else {
+    state.viewMode = value;
+    switchGroup(value);
+  }
 }
 
 function initTravelMap() {
@@ -1108,20 +1443,37 @@ function refreshTravelPins() {
   travelPins = []; openPopup = null;
   const statsBar = document.getElementById('map-stats-bar');
   const countEl  = document.getElementById('record-panel-count');
-  if (!state.records.length) {
+
+  // viewMode에 따라 표시할 핀 결정
+  const isPersonalView = !state.viewMode || state.viewMode === 'personal';
+  const groupRecs    = isPersonalView ? [] : state.records;
+  const personalRecs = isPersonalView ? (state.localRecords || []) : [];
+  const allRecs = [
+    ...groupRecs,
+    ...personalRecs.map(r => ({ ...r, _personal: true }))
+  ];
+
+  if (!allRecs.length) {
     statsBar.style.display = 'none';
     if (countEl) countEl.textContent = '';
     return;
   }
   statsBar.style.display = 'flex';
-  document.getElementById('map-stats-text').textContent = `여행지 ${state.records.length}곳`;
-  if (countEl) countEl.textContent = `${state.records.length}곳`;
+  document.getElementById('map-stats-text').textContent = `여행지 ${allRecs.length}곳`;
+  if (countEl) countEl.textContent = `${allRecs.length}곳`;
   const bounds = [];
-  state.records.forEach((r) => {
+  allRecs.forEach((r) => {
     if (!r.lat || !r.lng) return;
+    const isPersonalPin = r._personal === true;
+    const pinColor = isPersonalPin ? '#2563EB' : '#F97316';
     const pinIcon = L.divIcon({
       className:'',
-      html:`<div class="travel-pin"><div class="travel-pin-bubble">${r.emoji} ${r.district}</div><div class="travel-pin-tail"></div></div>`,
+      html:`<div class="travel-pin">
+        <div class="travel-pin-bubble" style="background:${pinColor};box-shadow:0 3px 10px ${pinColor}66;">
+          ${r.emoji} ${r.district}${isPersonalPin ? ' <span style="font-size:9px;opacity:.8;">개인</span>' : ''}
+        </div>
+        <div class="travel-pin-tail" style="border-top-color:${pinColor};"></div>
+      </div>`,
       iconSize:[0,0], iconAnchor:[0,0]
     });
     const marker = L.marker([r.lat, r.lng], { icon: pinIcon }).addTo(travelMap);
@@ -1607,6 +1959,13 @@ function pickEmoji(el) {
 }
 
 async function saveRecord() {
+  if (!state.nickname) {
+    alert('여행 기록을 저장하려면 프로필(닉네임)을 먼저 설정해주세요!');
+    closeMemoModal(); closeResult();
+    goPage('settings', document.querySelectorAll('.nav-btn')[2]);
+    setTimeout(() => showProfileModal(), 300);
+    return;
+  }
   const r=state.currentResult;
   const now=new Date();
   const rec={
@@ -1627,8 +1986,9 @@ async function saveRecord() {
   } else {
     // 로컬 저장
     const localRec = { id:Date.now(), ...rec };
-    state.records.unshift(localRec);
-    localStorage.setItem('tr-records', JSON.stringify(state.records));
+    state.localRecords.unshift(localRec);
+    localStorage.setItem('tr-records', JSON.stringify(state.localRecords));
+    if (!state.groupCode) state.records = state.localRecords;
     renderRecords();
     refreshTravelPins();
   }
@@ -1638,21 +1998,27 @@ async function saveRecord() {
 }
 
 function renderRecords() {
-  const list=document.getElementById('records-list');
-  if (!state.records.length) {
-    list.innerHTML=`<div class="empty-state">
+  const list = document.getElementById('records-list');
+  // viewMode에 따라 표시할 기록 결정
+  const isPersonalView = !state.viewMode || state.viewMode === 'personal';
+  const displayRecords = isPersonalView ? (state.localRecords || []) : state.records;
+  const showBy = !isPersonalView; // 그룹 뷰에서만 누가 추가했는지 표시
+
+  if (!displayRecords.length) {
+    list.innerHTML = `<div class="empty-state">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-      <p>아직 여행 기록이 없어요.<br>첫 여행지를 뽑아보세요!</p></div>`;
+      <p>${isPersonalView ? '아직 내 여행 기록이 없어요.' : '이 그룹에 기록이 없어요.'}<br>첫 여행지를 뽑아보세요!</p></div>`;
     return;
   }
-  list.innerHTML=state.records.map(r=>`
+
+  list.innerHTML = displayRecords.map(r => `
     <div class="record-card">
       <div class="record-thumb">${r.emoji}</div>
       <div class="record-info">
         <div class="record-dest">${r.district}</div>
-        <div class="record-meta">${r.region} · ${r.date}${r.drivingSec?` · 🚗 ${fmtSec(r.drivingSec)}`:''}</div>
-        <div class="record-memo">${r.memo||'메모 없음'}</div>
-        ${state.groupCode && r.addedBy ? `<div class="record-by">👤 ${r.addedBy}</div>` : ''}
+        <div class="record-meta">${r.region} · ${r.date}${r.drivingSec ? ` · 🚗 ${fmtSec(r.drivingSec)}` : ''}</div>
+        <div class="record-memo">${r.memo || '메모 없음'}</div>
+        ${showBy && r.addedBy ? `<div class="record-by">👤 ${r.addedBy}</div>` : ''}
       </div>
     </div>`).join('');
 }
@@ -1664,8 +2030,9 @@ async function deleteRecord(fbKey, localId) {
     await remove(ref(db, `groups/${state.groupCode}/records/${fbKey}`));
     // onValue가 자동으로 갱신
   } else {
-    state.records = state.records.filter(r => String(r.id) !== String(localId));
-    localStorage.setItem('tr-records', JSON.stringify(state.records));
+    state.localRecords = state.localRecords.filter(r => String(r.id) !== String(localId));
+    localStorage.setItem('tr-records', JSON.stringify(state.localRecords));
+    if (!state.groupCode) state.records = state.localRecords;
     renderRecords();
     refreshTravelPins();
   }
@@ -1682,6 +2049,7 @@ function clearAllRecords() {
     Promise.all(toDelete.map(r=>remove(ref(db, `groups/${state.groupCode}/records/${r.fbKey}`))));
   } else {
     state.records = [];
+    state.localRecords = [];
     localStorage.setItem('tr-records','[]');
     renderRecords();
     refreshTravelPins();
@@ -1755,7 +2123,7 @@ function goPage(name, btn) {
   document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='map') setTimeout(()=>{ renderGroupTabs(); initTravelMap(); renderRecords(); },50);
-  if(name==='settings') renderGroupSection();
+  if(name==='settings') { renderProfileSection(); renderMyRecordsSection(); renderGroupSection(); }
 }
 
 // ============================================================
